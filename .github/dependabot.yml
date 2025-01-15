@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        patterns:
+          - "pytest*"
+          - "ruff*"
+          - "mypy*"
+          - "build*"
+          - "twine*"
+  - package-ecosystem: github-actions
+    directory: /
+    commit-message:
+      prefix: ci
+    labels:
+      - ci
+    schedule:
+      interval: weekly
