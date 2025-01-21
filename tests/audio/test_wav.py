@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -12,8 +13,6 @@ from wavrail.errors import AudioError, FormatError
 
 
 def _roundtrip(encoding: str, sample_rate: int, samples: np.ndarray) -> None:
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / f"clip.{encoding}.wav"
         write_wav(path, samples, sample_rate, encoding=encoding)
@@ -56,8 +55,7 @@ def test_write_wav_rejects_unknown_encoding(tmp_path: Path) -> None:
 
 def test_read_wav_rejects_unsupported_encoding(tmp_path: Path) -> None:
     p = tmp_path / "alaw.wav"
-    # Write a hand-rolled a-law header so read_wav must reject it.
-    fmt = b"fmt " + (16).to_bytes(4, "little") + b"\x06\x00\x01\x00"  # audio_format=6 (a-law)
+    fmt = b"fmt " + (16).to_bytes(4, "little") + b"\x06\x00\x01\x00"
     data = b"data" + b"\x00\x00\x00\x00" + b"\x00" * 32
     p.write_bytes(b"RIFF" + (36 + len(data)).to_bytes(4, "little") + b"WAVE" + fmt + data)
     with pytest.raises(FormatError):
