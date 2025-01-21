@@ -12,5 +12,6 @@ exported by a given release.
 """
 
 from wavrail.audio.info import inspect_wav
+from wavrail.audio.wav import read_wav, write_wav
 
-__all__ = ["inspect_wav"]
+__all__ = ["inspect_wav", "read_wav", "write_wav"]
