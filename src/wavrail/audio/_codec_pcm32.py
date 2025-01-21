@@ -36,8 +36,8 @@ def decode(data: bytes, num_channels: int) -> AudioArray:
 def encode(samples: AudioArray) -> bytes:
     """Encode a float audio array into PCM32 bytes."""
     flat = np.asarray(samples, dtype=np.float32).reshape(-1)
-    clipped = np.clip(flat, -1.0, 1.0 - 1 / _QUANT)
-    ints = np.rint(clipped * _QUANT).astype(np.int64)
+    clipped = np.clip(flat, -1.0, 1.0).astype(np.float64)
+    ints = np.rint(clipped * _QUANT).clip(-(2**31), 2**31 - 1).astype(np.int64)
     return encode_pcm32(ints.tolist())
 
 
