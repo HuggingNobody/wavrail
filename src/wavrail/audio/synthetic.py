@@ -54,11 +54,7 @@ def synthesize_chirp(
     sample_rate: int,
     amplitude: float = 0.5,
 ) -> AudioArray:
-    """Generate a linear-frequency chirp from ``start_hz`` to ``end_hz``.
-
-    The instantaneous frequency at time ``t`` is ``start_hz +
-    (end_hz - start_hz) * t / duration_s``.
-    """
+    """Generate a linear-frequency chirp from ``start_hz`` to ``end_hz``."""
     _check_positive("duration_s", duration_s)
     _check_positive("sample_rate", sample_rate)
     if start_hz <= 0 or end_hz <= 0:
@@ -72,4 +68,35 @@ def synthesize_chirp(
     return (amplitude * np.sin(phase)).astype(np.float32)
 
 
-__all__ = ["synthesize_chirp", "synthesize_sine"]
+def synthesize_pulse(
+    start_s: float,
+    duration_s: float,
+    total_duration_s: float,
+    sample_rate: int,
+    amplitude: float = 1.0,
+) -> AudioArray:
+    """Generate a rectangular pulse sitting on a silent baseline.
+
+    The output length is ``round(total_duration_s * sample_rate)``.
+    Samples inside ``[start_s, start_s + duration_s]`` take the
+    requested amplitude; everything else is zero.
+    """
+    _check_positive("total_duration_s", total_duration_s)
+    _check_positive("sample_rate", sample_rate)
+    if duration_s <= 0:
+        raise AudioError("duration_s must be positive")
+    if start_s < 0:
+        raise AudioError("start_s must be non-negative")
+    if start_s + duration_s > total_duration_s:
+        raise AudioError("start_s + duration_s exceeds total_duration_s")
+    if not 0.0 <= amplitude <= 1.0:
+        raise AudioError("amplitude must be in [0, 1]")
+    total = round(total_duration_s * sample_rate)
+    pulse = np.zeros(total, dtype=np.float32)
+    begin = round(start_s * sample_rate)
+    end = begin + round(duration_s * sample_rate)
+    pulse[begin:end] = amplitude
+    return pulse
+
+
+__all__ = ["synthesize_chirp", "synthesize_pulse", "synthesize_sine"]

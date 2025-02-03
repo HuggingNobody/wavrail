@@ -12,7 +12,14 @@ exported by a given release.
 """
 
 from wavrail.audio.info import inspect_wav
-from wavrail.audio.synthetic import synthesize_chirp, synthesize_sine
+from wavrail.audio.synthetic import synthesize_chirp, synthesize_pulse, synthesize_sine
 from wavrail.audio.wav import read_wav, write_wav
 
-__all__ = ["inspect_wav", "read_wav", "synthesize_chirp", "synthesize_sine", "write_wav"]
+__all__ = [
+    "inspect_wav",
+    "read_wav",
+    "synthesize_chirp",
+    "synthesize_pulse",
+    "synthesize_sine",
+    "write_wav",
+]
