@@ -111,4 +111,52 @@ def synthesize_noise(
     return samples
 
 
-__all__ = ["synthesize_chirp", "synthesize_noise", "synthesize_pulse", "synthesize_sine"]
+def synthesize_formant_stack(
+    formants_hz: list[tuple[float, float]],
+    duration_s: float,
+    sample_rate: int,
+    noise_amplitude: float = 0.0,
+    noise_seed: int = 0,
+) -> AudioArray:
+    """Stack sinusoids at formant frequencies with given amplitudes.
+
+    Each entry of ``formants_hz`` is a ``(frequency_hz, amplitude)``
+    pair. The amplitudes are summed additively and clipped to the
+    ``[-1, 1]`` range. An optional uniform-noise floor is added to
+    simulate frication. The output is clearly NOT real speech and
+    must only be used as a controlled acoustic fixture.
+    """
+    if not formants_hz:
+        raise AudioError("formants_hz must contain at least one entry")
+    for idx, entry in enumerate(formants_hz):
+        if len(entry) != 2:
+            raise AudioError(f"formant {idx} must be (frequency_hz, amplitude)")
+        freq, amp = entry
+        if freq <= 0:
+            raise AudioError(f"formant {idx} frequency must be positive")
+        if not 0.0 <= amp <= 1.0:
+            raise AudioError(f"formant {idx} amplitude must be in [0, 1]")
+    _check_positive("duration_s", duration_s)
+    _check_positive("sample_rate", sample_rate)
+    if not 0.0 <= noise_amplitude <= 1.0:
+        raise AudioError("noise_amplitude must be in [0, 1]")
+    num_samples = round(duration_s * sample_rate)
+    t = _time_axis(num_samples, sample_rate)
+    signal = np.zeros(num_samples, dtype=np.float32)
+    for freq, amp in formants_hz:
+        signal += amp * np.sin(2.0 * np.pi * freq * t)
+    if noise_amplitude > 0.0:
+        rng = np.random.default_rng(noise_seed)
+        signal += rng.uniform(-noise_amplitude, noise_amplitude, size=num_samples).astype(
+            np.float32
+        )
+    return np.clip(signal, -1.0, 1.0).astype(np.float32)
+
+
+__all__ = [
+    "synthesize_chirp",
+    "synthesize_formant_stack",
+    "synthesize_noise",
+    "synthesize_pulse",
+    "synthesize_sine",
+]
