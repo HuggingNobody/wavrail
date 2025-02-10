@@ -75,12 +75,7 @@ def synthesize_pulse(
     sample_rate: int,
     amplitude: float = 1.0,
 ) -> AudioArray:
-    """Generate a rectangular pulse sitting on a silent baseline.
-
-    The output length is ``round(total_duration_s * sample_rate)``.
-    Samples inside ``[start_s, start_s + duration_s]`` take the
-    requested amplitude; everything else is zero.
-    """
+    """Generate a rectangular pulse sitting on a silent baseline."""
     _check_positive("total_duration_s", total_duration_s)
     _check_positive("sample_rate", sample_rate)
     if duration_s <= 0:
@@ -99,4 +94,21 @@ def synthesize_pulse(
     return pulse
 
 
-__all__ = ["synthesize_chirp", "synthesize_pulse", "synthesize_sine"]
+def synthesize_noise(
+    duration_s: float,
+    sample_rate: int,
+    seed: int = 0,
+    amplitude: float = 0.1,
+) -> AudioArray:
+    """Generate uniform white noise clipped to ``[-amplitude, amplitude]``."""
+    _check_positive("duration_s", duration_s)
+    _check_positive("sample_rate", sample_rate)
+    if not 0.0 <= amplitude <= 1.0:
+        raise AudioError("amplitude must be in [0, 1]")
+    rng = np.random.default_rng(seed)
+    num_samples = round(duration_s * sample_rate)
+    samples = rng.uniform(-amplitude, amplitude, size=num_samples).astype(np.float32)
+    return samples
+
+
+__all__ = ["synthesize_chirp", "synthesize_noise", "synthesize_pulse", "synthesize_sine"]
