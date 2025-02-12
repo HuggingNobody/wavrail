@@ -11,14 +11,29 @@ documents the planned surface; check ``__all__`` for what is actually
 exported by a given release.
 """
 
+from wavrail.audio.downmix import downmix_to_mono
 from wavrail.audio.info import inspect_wav
-from wavrail.audio.synthetic import synthesize_chirp, synthesize_pulse, synthesize_sine
+from wavrail.audio.quality import clipping_detected, silence_ratio
+from wavrail.audio.resample import resample
+from wavrail.audio.synthetic import (
+    synthesize_chirp,
+    synthesize_formant_stack,
+    synthesize_noise,
+    synthesize_pulse,
+    synthesize_sine,
+)
 from wavrail.audio.wav import read_wav, write_wav
 
 __all__ = [
+    "clipping_detected",
+    "downmix_to_mono",
     "inspect_wav",
     "read_wav",
+    "resample",
+    "silence_ratio",
     "synthesize_chirp",
+    "synthesize_formant_stack",
+    "synthesize_noise",
     "synthesize_pulse",
     "synthesize_sine",
     "write_wav",
