@@ -51,7 +51,9 @@ def num_frames(num_samples: int, config: FrameConfig) -> int:
     if num_samples <= 0:
         return 0
     length = num_samples + (config.frame_length // 2 if config.center else 0) * 2
-    return max(1, (length - config.frame_length) // config.hop_length + 1)
+    if length < config.frame_length:
+        return 0
+    return (length - config.frame_length) // config.hop_length + 1
 
 
 __all__ = ["frame_signal", "num_frames"]
