@@ -20,7 +20,7 @@ def hann_window(frame_length: int, symmetric: bool = True) -> np.ndarray:
 
 def hamming_window(frame_length: int, symmetric: bool = True) -> np.ndarray:
     """Hamming window with alpha=0.54."""
-    return _general_hamming(frame_length, alpha=0.46, symmetric=symmetric)
+    return _general_hamming(frame_length, alpha=0.54, symmetric=symmetric)
 
 
 def blackman_window(frame_length: int, symmetric: bool = True) -> np.ndarray:
