@@ -65,15 +65,19 @@ def mel_filterbank(config: MelConfig) -> np.ndarray:
     bin_indices = np.clip(bin_indices, 0, num_bins - 1)
     fb = np.zeros((config.num_mels, num_bins), dtype=np.float32)
     for m in range(config.num_mels):
-        left, center, right = bin_indices[m], bin_indices[m + 1], bin_indices[m + 2]
+        left = int(bin_indices[m])
+        center = int(bin_indices[m + 1])
+        right = int(bin_indices[m + 2])
         if center > left:
-            fb[m, left:center] = (hz_centers[m + 1] - hz_centers[left]) / max(
-                hz_centers[center] - hz_centers[left], 1e-12
-            )
+            denom = float(hz_centers[m + 1] - hz_centers[m])
+            if denom <= 0:
+                denom = 1e-12
+            fb[m, left:center] = (hz_centers[m + 1] - hz_centers[m]) / denom
         if right > center:
-            fb[m, center:right] = (hz_centers[right] - hz_centers[m + 1]) / max(
-                hz_centers[right] - hz_centers[center], 1e-12
-            )
+            denom = float(hz_centers[m + 2] - hz_centers[m + 1])
+            if denom <= 0:
+                denom = 1e-12
+            fb[m, center:right] = (hz_centers[m + 2] - hz_centers[m + 1]) / denom
     return fb
 
 
