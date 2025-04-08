@@ -27,7 +27,9 @@ def compute_deltas(features: FeatureArray, window: int = 2) -> FeatureArray:
     denominator = 2.0 * sum(n * n for n in range(1, window + 1))
     deltas = np.zeros_like(arr)
     for n in range(1, window + 1):
-        deltas += n * (padded[window + n :] - padded[window - n : arr.shape[0] + window - n])
+        future = padded[window + n : window + n + arr.shape[0]]
+        past = padded[window - n : window - n + arr.shape[0]]
+        deltas += n * (future - past)
     return (deltas / denominator).astype(np.float32)
 
 
