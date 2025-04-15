@@ -7,4 +7,6 @@ trained checkpoints can be reloaded without rebuilding the
 mapping from the underlying labels file.
 """
 
-__all__ = []
+from wavrail.vocab.vocab import Vocab
+
+__all__ = ["Vocab"]
