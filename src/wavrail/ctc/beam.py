@@ -59,18 +59,22 @@ class PrefixBeamSearch:
     ) -> dict[tuple[int, ...], float]:
         blank = self.vocab.blank_index
         next_scores: dict[tuple[int, ...], float] = {}
+        # First, every prefix can stay unchanged by emitting a blank.
         for prefix, score in scores.items():
             next_scores[prefix] = score + float(frame[blank])
+        # Second, extend each prefix with a non-blank symbol.
         for prefix, score in scores.items():
+            last = prefix[-1] if prefix else -1
             for symbol in range(self.vocab.size):
                 if symbol == blank:
                     continue
-                new_prefix = (*prefix, symbol)
-                new_score = score + float(frame[symbol])
-                if new_prefix in next_scores:
-                    next_scores[new_prefix] = _logaddexp(next_scores[new_prefix], new_score)
+                logp = float(frame[symbol])
+                target = prefix if symbol == last else (*prefix, symbol)
+                candidate = score + logp
+                if target in next_scores:
+                    next_scores[target] = _logaddexp(next_scores[target], candidate)
                 else:
-                    next_scores[new_prefix] = new_score
+                    next_scores[target] = candidate
         ranked = sorted(next_scores.items(), key=lambda item: item[1], reverse=True)
         return dict(ranked[: self.beam])
 
