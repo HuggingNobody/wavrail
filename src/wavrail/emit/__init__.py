@@ -16,10 +16,16 @@ from wavrail.emit.streaming import (
     StreamingDecoder,
     StreamingDecoderState,
     decode_streaming,
+    deserialize_state,
+    iter_chunks,
+    serialize_state,
 )
 
 __all__ = [
     "StreamingDecoder",
     "StreamingDecoderState",
     "decode_streaming",
+    "deserialize_state",
+    "iter_chunks",
+    "serialize_state",
 ]
