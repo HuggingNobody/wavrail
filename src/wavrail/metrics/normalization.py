@@ -40,9 +40,9 @@ def fullwidth_to_halfwidth(text: str) -> str:
             out.append(" ")
             continue
         delta = code - _FULLWIDTH_OFFSET
-        is_digit = _ASCII_DIGIT_START <= delta <= _ASCII_DIGIT_END - _ASCII_DIGIT_START
-        is_upper = _ASCII_UPPER_START <= delta <= _ASCII_UPPER_END - _ASCII_UPPER_START
-        is_lower = _ASCII_LOWER_START <= delta <= _ASCII_LOWER_END - _ASCII_LOWER_START
+        is_digit = _ASCII_DIGIT_START <= delta <= _ASCII_DIGIT_END
+        is_upper = _ASCII_UPPER_START <= delta <= _ASCII_UPPER_END
+        is_lower = _ASCII_LOWER_START <= delta <= _ASCII_LOWER_END
         if is_digit or is_upper or is_lower:
             out.append(chr(delta))
         else:
@@ -70,8 +70,13 @@ def halfwidth_to_fullwidth(text: str) -> str:
 
 
 def normalize_digits(text: str, *, to_chinese: bool = False) -> str:
-    """Convert digits between Arabic and Chinese numeral forms."""
-    if not to_chinese:
+    """Convert digits between Arabic and Chinese numeral forms.
+
+    When ``to_chinese`` is true, Arabic digits ``0``-``9`` are
+    mapped to Chinese numerals ``零``-``九``. When false, Chinese
+    numerals are mapped back to Arabic digits.
+    """
+    if to_chinese:
         arabic_to_chinese = str.maketrans("0123456789", _CHINESE_DIGITS)
         return text.translate(arabic_to_chinese)
     chinese_to_arabic = str.maketrans(_CHINESE_DIGITS, "0123456789")
