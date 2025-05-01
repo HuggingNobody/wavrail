@@ -77,7 +77,11 @@ def align_ctc(
         raise AlignmentError("log_posteriors width does not match vocab size")
     if log_posteriors.shape[0] == 0:
         return Alignment(tokens=(), frame_spans=(), log_probabilities=(), confidences=())
-    token_ids = vocab.encode(target) if isinstance(target, str) else [int(t) for t in target]
+    token_ids = (
+        [vocab.token_to_id(c) for c in target]
+        if isinstance(target, str)
+        else [int(t) for t in target]
+    )
     if not token_ids:
         return Alignment(tokens=(), frame_spans=(), log_probabilities=(), confidences=())
     blank = vocab.blank_index
@@ -85,7 +89,7 @@ def align_ctc(
         raise AlignmentError("target tokens must not include the blank id")
     expanded = _expand_with_blanks(token_ids, blank)
     path = _viterbi(log_posteriors, expanded, blank)
-    spans, log_ps = _collapse_path(path, expanded)
+    spans, log_ps = _collapse_path(path, expanded, blank)
     confidences = tuple(
         float(np.exp(lp / max(end - start, 1)))
         for (start, end), lp in zip(spans, log_ps, strict=True)
@@ -151,7 +155,7 @@ def _viterbi(
 
 
 def _collapse_path(
-    path: list[int], expanded: list[int]
+    path: list[int], expanded: list[int], blank: int
 ) -> tuple[list[tuple[int, int]], list[float]]:
     spans: list[tuple[int, int]] = []
     log_ps: list[float] = []
@@ -162,13 +166,13 @@ def _collapse_path(
         token = expanded[label_idx]
         if token == current:
             continue
-        if current >= 0:
+        if current >= 0 and current != blank:
             spans.append((start, t))
             log_ps.append(log_acc)
         current = token
         start = t
         log_acc = 0.0
-    if current >= 0:
+    if current >= 0 and current != blank:
         spans.append((start, len(path)))
         log_ps.append(log_acc)
     return spans, log_ps
