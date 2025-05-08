@@ -45,6 +45,7 @@ from wavrail.emit.streaming import (
 from wavrail.errors import PipelineError
 from wavrail.features.frames import frame_signal
 from wavrail.stream.buffer import RingBuffer
+from wavrail.types import FrameConfig
 from wavrail.vocab import Vocab
 
 
@@ -99,6 +100,10 @@ class StreamingPipeline:
             self.decoder = StreamingDecoder(vocab=self.vocab, emission_delay=self.emission_delay)
         if self.feature_extractor is None:
             self.feature_extractor = _default_feature_extractor(self.feature_dim)
+        self.frame_config = FrameConfig(
+            frame_length=self.frame_length_samples,
+            hop_length=self.hop_length_samples,
+        )
         self.state = StreamingPipelineState(
             buffer_samples=[],
             total_samples_consumed=0,
@@ -121,11 +126,7 @@ class StreamingPipeline:
         snapshot = self.buffer.snapshot()
         if snapshot.shape[0] < self.frame_length_samples:
             return []
-        frames = frame_signal(
-            snapshot,
-            frame_length=self.frame_length_samples,
-            hop_length=self.hop_length_samples,
-        )
+        frames = frame_signal(snapshot, self.frame_config)
         features = self.feature_extractor(frames)
         emissions = self.decoder.feed(self.state.decoder_state, features)
         consumed = self.hop_length_samples * (frames.shape[0] - 1) + self.frame_length_samples
@@ -142,11 +143,7 @@ class StreamingPipeline:
         """Flush the pipeline and return the final hypothesis."""
         snapshot = self.buffer.snapshot()
         if snapshot.shape[0] >= self.frame_length_samples:
-            frames = frame_signal(
-                snapshot,
-                frame_length=self.frame_length_samples,
-                hop_length=self.hop_length_samples,
-            )
+            frames = frame_signal(snapshot, self.frame_config)
             features = self.feature_extractor(frames)
             self.decoder.feed(self.state.decoder_state, features)
         self.decoder.finalize(self.state.decoder_state)
