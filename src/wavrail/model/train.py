@@ -16,6 +16,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+import numpy as np
+
 from wavrail.errors import ModelError
 
 
@@ -91,7 +93,9 @@ def train_synthetic(
         n_batches = 0
         for batch_start in range(0, len(train_examples), config.batch_size):
             batch = train_examples[batch_start : batch_start + config.batch_size]
-            inputs = torch.tensor([example.features for example in batch], dtype=torch.float32)
+            inputs = torch.tensor(
+                np.array([example.features for example in batch]), dtype=torch.float32
+            )
             targets, target_lengths = build_targets(batch)
             logits = model(inputs)
             log_probs = torch.log_softmax(logits, dim=-1)

@@ -22,7 +22,10 @@ def _require_torch():
     return torch, nn
 
 
-class AcousticModel:  # type: ignore[no-redef]
+_ModuleBase = _require_torch()[1].Module
+
+
+class AcousticModel(_ModuleBase):  # type: ignore[misc, valid-type]
     """Compact GRU encoder + CTC head.
 
     The class is constructed only when torch is available. The
@@ -32,6 +35,7 @@ class AcousticModel:  # type: ignore[no-redef]
 
     def __init__(self, *, input_dim: int, hidden_dim: int, vocab_size: int) -> None:
         _torch, nn = _require_torch()
+        super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
