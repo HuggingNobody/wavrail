@@ -20,7 +20,7 @@ from wavrail.errors import ModelError
 from wavrail.features.frames import frame_signal
 from wavrail.features.mel import mel_filterbank
 from wavrail.features.spectrum import power_spectrum
-from wavrail.types import FrameConfig
+from wavrail.types import FrameConfig, MelConfig
 from wavrail.vocab import Vocab
 
 
@@ -46,8 +46,13 @@ def _log_mel(
 ) -> np.ndarray:
     config = FrameConfig(frame_length=frame_length, hop_length=hop_length)
     frames = frame_signal(audio, config)
-    spectrum = power_spectrum(frames)
-    fbanks = mel_filterbank(sample_rate=sample_rate, n_fft=frame_length, n_mels=n_mels)
+    spectrum = power_spectrum(frames, fft_size=frame_length)
+    mel_config = MelConfig(
+        sample_rate=sample_rate,
+        num_mels=n_mels,
+        fft_size=frame_length,
+    )
+    fbanks = mel_filterbank(mel_config)
     mel_energy = spectrum @ fbanks.T
     mel_energy = np.maximum(mel_energy, 1e-10)
     return np.log(mel_energy).astype(np.float32)
