@@ -124,7 +124,14 @@ def _run_inspect(args: argparse.Namespace) -> None:
     from wavrail.audio import inspect_wav
 
     info = inspect_wav(args.path)
-    print(json.dumps(info, indent=2))
+    payload = {
+        "sample_rate": info.sample_rate,
+        "num_channels": info.num_channels,
+        "sample_width": info.sample_width,
+        "duration_s": info.duration_s,
+        "num_samples": info.num_samples,
+    }
+    print(json.dumps(payload, indent=2))
 
 
 def _run_features(args: argparse.Namespace) -> None:
@@ -134,15 +141,15 @@ def _run_features(args: argparse.Namespace) -> None:
     from wavrail.features.spectrum import power_spectrum
     from wavrail.types import FrameConfig, MelConfig
 
-    audio = read_wav(args.path)
+    samples, meta = read_wav(args.path)
     config = FrameConfig(
-        frame_length=round(audio.sample_rate * args.frame_length_ms / 1000.0),
-        hop_length=round(audio.sample_rate * args.hop_length_ms / 1000.0),
+        frame_length=round(meta.sample_rate * args.frame_length_ms / 1000.0),
+        hop_length=round(meta.sample_rate * args.hop_length_ms / 1000.0),
     )
-    frames = frame_signal(audio.samples, config)
+    frames = frame_signal(samples, config)
     spectrum = power_spectrum(frames, fft_size=config.frame_length)
     mel_config = MelConfig(
-        sample_rate=audio.sample_rate,
+        sample_rate=meta.sample_rate,
         num_mels=args.n_mels,
         fft_size=config.frame_length,
     )
@@ -168,10 +175,10 @@ def _run_decode(args: argparse.Namespace) -> None:
     from wavrail.types import FrameConfig
     from wavrail.vocab import Vocab
 
-    audio = read_wav(args.path)
+    samples, _meta = read_wav(args.path)
     vocab = Vocab.from_labels(args.vocab.split(","))
     config = FrameConfig(frame_length=400, hop_length=160)
-    frames = frame_signal(audio.samples, config)
+    frames = frame_signal(samples, config)
     if args.beam <= 1:
         # Use the per-frame energy as a trivial "log posterior" surrogate
         # so the demo runs without a real acoustic model.
@@ -195,10 +202,10 @@ def _run_align(args: argparse.Namespace) -> None:
     from wavrail.types import FrameConfig
     from wavrail.vocab import Vocab
 
-    audio = read_wav(args.path)
+    samples, _meta = read_wav(args.path)
     vocab = Vocab.from_labels(args.vocab.split(","))
     config = FrameConfig(frame_length=400, hop_length=160)
-    frames = frame_signal(audio.samples, config)
+    frames = frame_signal(samples, config)
     energy = np.log(np.maximum(frames**2, 1e-10))
     posteriors = energy[:, : vocab.size]
     posteriors = posteriors - posteriors.max(axis=1, keepdims=True)
