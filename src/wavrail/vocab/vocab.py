@@ -56,6 +56,22 @@ class Vocab:
     def is_blank(self, index: int) -> bool:
         return index == self.blank_index
 
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "labels": list(self.labels),
+            "blank_index": self.blank_index,
+            "name": self.name,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> Vocab:
+        labels = payload.get("labels") or []
+        return cls(
+            labels=tuple(str(label) for label in labels),
+            blank_index=int(payload.get("blank_index", 0)),
+            name=str(payload.get("name", "vocab")),
+        )
+
     def __len__(self) -> int:
         return self.size
 
