@@ -42,5 +42,6 @@ def test_pad_mode_edge() -> None:
 
 
 def test_rejects_unknown_pad_mode() -> None:
-    with pytest.raises(ValueError, match="pad_mode"):
-        FrameConfig(frame_length=8, hop_length=4, center=True, pad_mode="bogus")
+    config = FrameConfig(frame_length=8, hop_length=4, center=True, pad_mode="bogus")
+    with pytest.raises(FeatureError, match="pad_mode"):
+        frame_signal(np.ones(16, dtype=np.float32), config)

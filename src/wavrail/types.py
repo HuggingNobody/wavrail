@@ -59,8 +59,6 @@ class FrameConfig:
             raise ValueError("hop_length must be positive")
         if self.frame_length < self.hop_length:
             raise ValueError("frame_length must be >= hop_length")
-        if self.pad_mode not in {"constant", "edge", "reflect"}:
-            raise ValueError(f"unknown pad_mode: {self.pad_mode}")
 
 
 @dataclass(frozen=True)
