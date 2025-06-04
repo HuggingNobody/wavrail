@@ -74,6 +74,19 @@ class RingBuffer:
         self._head = 0
         return out
 
+    def consume(self, n: int) -> int:
+        """Discard the oldest ``n`` samples and return how many were dropped.
+
+        Asking for more samples than are buffered empties the buffer
+        without raising; the return value reports the number actually
+        dropped so callers can detect an underrun.
+        """
+        if n <= 0:
+            return 0
+        dropped = min(n, self._size)
+        self._size -= dropped
+        return dropped
+
     def snapshot(self) -> np.ndarray:
         """Return a copy of the buffered samples without emptying them."""
         if self._size == 0:
