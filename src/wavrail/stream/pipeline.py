@@ -100,9 +100,14 @@ class StreamingPipeline:
             self.decoder = StreamingDecoder(vocab=self.vocab, emission_delay=self.emission_delay)
         if self.feature_extractor is None:
             self.feature_extractor = _default_feature_extractor(self.feature_dim)
+        # center=False anchors the frame grid at absolute sample zero:
+        # the buffer keeps the unframed tail instead of re-padding it on
+        # every feed, which is what makes chunked feeding frame-identical
+        # to offline blocking.
         self.frame_config = FrameConfig(
             frame_length=self.frame_length_samples,
             hop_length=self.hop_length_samples,
+            center=False,
         )
         self.state = StreamingPipelineState(
             buffer_samples=[],
@@ -129,15 +134,13 @@ class StreamingPipeline:
         frames = frame_signal(snapshot, self.frame_config)
         features = self.feature_extractor(frames)
         emissions = self.decoder.feed(self.state.decoder_state, features)
-        consumed = self.hop_length_samples * (frames.shape[0] - 1) + self.frame_length_samples
-        consumed = min(consumed, snapshot.shape[0])
+        consumed = min(self.hop_length_samples * frames.shape[0], snapshot.shape[0])
         self._consume(consumed)
         self.state.total_samples_consumed += int(samples.shape[0])
         return emissions
 
     def _consume(self, n: int) -> None:
-        for _ in range(n):
-            self.buffer.drain()
+        self.buffer.consume(n)
 
     def finalize(self) -> Hypothesis:
         """Flush the pipeline and return the final hypothesis."""
