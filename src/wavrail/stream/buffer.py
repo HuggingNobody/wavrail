@@ -2,9 +2,11 @@
 
 The buffer is backed by a NumPy array of fixed capacity. Old
 samples are overwritten when the buffer wraps around. The
-buffer never grows unboundedly; pushing more samples than the
-capacity allows raises an explicit ``BufferError`` so callers
-can decide to flush, drop, or terminate.
+buffer never grows unboundedly. Cumulative overflow follows the
+``overflow`` policy: ``"overwrite"`` silently replaces the
+oldest samples, while ``"error"`` raises so the producer can
+apply backpressure. A single push larger than the whole
+capacity always raises.
 """
 
 from __future__ import annotations
@@ -17,11 +19,20 @@ from wavrail.errors import PipelineError as _BufferError
 class RingBuffer:
     """Fixed-capacity NumPy-backed ring buffer."""
 
-    def __init__(self, capacity: int, channels: int = 1, dtype: np.dtype = np.float32) -> None:
+    def __init__(
+        self,
+        capacity: int,
+        channels: int = 1,
+        dtype: np.dtype = np.float32,
+        overflow: str = "overwrite",
+    ) -> None:
         if capacity < 1:
             raise _BufferError("capacity must be >= 1")
         if channels < 1:
             raise _BufferError("channels must be >= 1")
+        if overflow not in {"overwrite", "error"}:
+            raise _BufferError("overflow must be 'overwrite' or 'error'")
+        self.overflow = overflow
         self.capacity = int(capacity)
         self.channels = int(channels)
         self.dtype = np.dtype(dtype)
@@ -32,6 +43,11 @@ class RingBuffer:
     @property
     def size(self) -> int:
         return self._size
+
+    @property
+    def free_space(self) -> int:
+        """Samples that fit before the overflow policy kicks in."""
+        return self.capacity - self._size
 
     @property
     def total_written(self) -> int:
@@ -48,6 +64,10 @@ class RingBuffer:
             return
         if n > self.capacity:
             raise _BufferError("cannot push more samples than capacity")
+        if self.overflow == "error" and self._size + n > self.capacity:
+            raise _BufferError(
+                f"buffer overflow: {n} samples do not fit in {self.free_space} free slots"
+            )
         end = self._head + n
         if end <= self.capacity:
             self._buffer[self._head : end] = samples
