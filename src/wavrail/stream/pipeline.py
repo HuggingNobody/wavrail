@@ -148,6 +148,7 @@ class StreamingPipeline:
         self.buffer.extend(samples.reshape(-1, 1))
         snapshot = self.buffer.snapshot()
         if snapshot.shape[0] < self.frame_length_samples:
+            self._sync_state()
             return []
         frames = frame_signal(snapshot, self.frame_config)
         features = self.feature_extractor(frames)
@@ -155,10 +156,16 @@ class StreamingPipeline:
         consumed = min(self.hop_length_samples * frames.shape[0], snapshot.shape[0])
         self._consume(consumed)
         self.state.total_samples_consumed += int(samples.shape[0])
+        self._sync_state()
         return emissions
 
     def _consume(self, n: int) -> None:
         self.buffer.consume(n)
+
+    def _sync_state(self) -> None:
+        """Mirror the buffered tail into the serialisable state."""
+        assert self.state is not None
+        self.state.buffer_samples = self.buffer.snapshot().reshape(-1).tolist()
 
     def finalize(self) -> Hypothesis:
         """Flush the pipeline and return the final hypothesis."""
@@ -169,6 +176,7 @@ class StreamingPipeline:
             self.decoder.feed(self.state.decoder_state, features)
         self.decoder.finalize(self.state.decoder_state)
         self.buffer.reset()
+        self._sync_state()
         return self.decoder.to_hypothesis(self.state.decoder_state)
 
     def reset(self) -> None:
