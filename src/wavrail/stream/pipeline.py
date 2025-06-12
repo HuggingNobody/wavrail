@@ -60,6 +60,7 @@ class StreamingPipelineState:
     sample_rate: int
     frame_length_samples: int
     hop_length_samples: int
+    cancelled: bool = False
 
 
 @dataclass
@@ -124,8 +125,24 @@ class StreamingPipeline:
     def buffered_samples(self) -> int:
         return self.buffer.size
 
+    @property
+    def is_cancelled(self) -> bool:
+        return bool(self.state is not None and self.state.cancelled)
+
+    def cancel(self) -> None:
+        """Cancel the stream.
+
+        Subsequent :meth:`feed_samples` calls raise until :meth:`reset`
+        restarts the pipeline. :meth:`finalize` still works so callers
+        can retrieve the hypothesis emitted before cancellation.
+        """
+        assert self.state is not None
+        self.state.cancelled = True
+
     def feed_samples(self, samples: np.ndarray) -> list[int]:
         """Push a chunk of mono audio through the pipeline."""
+        if self.is_cancelled:
+            raise PipelineError("pipeline was cancelled; call reset() to restart")
         if samples.ndim != 1:
             raise PipelineError("samples must be 1-D (mono)")
         self.buffer.extend(samples.reshape(-1, 1))
@@ -211,6 +228,7 @@ def serialize_pipeline_state(state: StreamingPipelineState) -> dict[str, Any]:
         "sample_rate": state.sample_rate,
         "frame_length_samples": state.frame_length_samples,
         "hop_length_samples": state.hop_length_samples,
+        "cancelled": state.cancelled,
     }
 
 
@@ -223,6 +241,7 @@ def deserialize_pipeline_state(payload: dict[str, Any]) -> StreamingPipelineStat
         sample_rate=int(payload.get("sample_rate", 16000)),
         frame_length_samples=int(payload.get("frame_length_samples", 400)),
         hop_length_samples=int(payload.get("hop_length_samples", 160)),
+        cancelled=bool(payload.get("cancelled", False)),
     )
 
 
