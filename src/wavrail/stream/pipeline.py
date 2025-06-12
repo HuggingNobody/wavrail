@@ -179,6 +179,30 @@ class StreamingPipeline:
         self._sync_state()
         return self.decoder.to_hypothesis(self.state.decoder_state)
 
+    def load_state(self, state: StreamingPipelineState) -> None:
+        """Adopt ``state`` so a paused stream resumes where it stopped.
+
+        Sample rate, frame geometry, and decoder vocabulary must all
+        match this pipeline; otherwise resumption would silently shift
+        the frame grid or reinterpret token ids.
+        """
+        if state.sample_rate != self.sample_rate:
+            raise PipelineError("sample_rate mismatch; refusing to resume")
+        if (
+            state.frame_length_samples != self.frame_length_samples
+            or state.hop_length_samples != self.hop_length_samples
+        ):
+            raise PipelineError("frame geometry mismatch; refusing to resume")
+        assert self.decoder is not None
+        if state.decoder_state.vocab_size != self.decoder.vocab.size:
+            raise PipelineError("decoder vocab mismatch; refusing to resume")
+        if len(state.buffer_samples) > self.buffer.capacity:
+            raise PipelineError("buffered tail exceeds this pipeline's capacity")
+        self.buffer.reset()
+        if state.buffer_samples:
+            self.buffer.extend(np.asarray(state.buffer_samples, dtype=np.float32))
+        self.state = state
+
     def reset(self) -> None:
         self.buffer.reset()
         self.state = StreamingPipelineState(
