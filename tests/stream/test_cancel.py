@@ -60,3 +60,28 @@ def test_cancelled_flag_serializes() -> None:
     payload = serialize_pipeline_state(pipeline.state)
     restored = deserialize_pipeline_state(payload)
     assert restored.cancelled is True
+
+
+def test_cancel_before_any_feed() -> None:
+    pipeline = _pipeline()
+    pipeline.cancel()
+    hyp = pipeline.finalize()
+    assert hyp.tokens == ()
+    assert hyp.text == ""
+
+
+def test_double_cancel_is_idempotent() -> None:
+    pipeline = _pipeline()
+    pipeline.cancel()
+    pipeline.cancel()
+    assert pipeline.is_cancelled
+
+
+def test_cancel_reset_cancel_cycle() -> None:
+    pipeline = _pipeline()
+    pipeline.cancel()
+    pipeline.reset()
+    pipeline.feed_samples(_samples(400))
+    pipeline.cancel()
+    with pytest.raises(PipelineError, match="cancelled"):
+        pipeline.feed_samples(_samples(400))
