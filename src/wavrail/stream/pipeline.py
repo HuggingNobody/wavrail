@@ -75,6 +75,7 @@ class StreamingPipeline:
     vocab: Vocab | None = None
     decoder: StreamingDecoder | None = None
     buffer_capacity_seconds: float = 5.0
+    overflow: str = "error"
     feature_extractor: Callable[[np.ndarray], np.ndarray] | None = None
     state: StreamingPipelineState | None = field(default=None, init=False)
 
@@ -94,7 +95,7 @@ class StreamingPipeline:
             self.frame_length_samples * 4,
             int(self.sample_rate * self.buffer_capacity_seconds),
         )
-        self.buffer = RingBuffer(capacity=self.buffer_capacity_samples)
+        self.buffer = RingBuffer(capacity=self.buffer_capacity_samples, overflow=self.overflow)
         if self.decoder is None:
             assert self.vocab is not None
             self.decoder = StreamingDecoder(vocab=self.vocab, emission_delay=self.emission_delay)
