@@ -14,8 +14,10 @@ Latency is split into two components:
   decoder needs to see before producing a token (controlled by
   the frame size and any lookahead the feature extractor
   requires).
-- **emission latency**: the difference in frames between the
-  token emission time and the most recent frame consumed.
+- **emission latency**: the number of frames between the frame
+  where a token first became the argmax candidate and the frame
+  where it was actually emitted (``emission_delay - 1`` for a
+  stable run).
 
 The :func:`measure_rtf` helper computes a real-time factor by
 timing one or more ``feed_samples`` calls and dividing the wall
@@ -61,6 +63,7 @@ class StreamingPipelineState:
     frame_length_samples: int
     hop_length_samples: int
     cancelled: bool = False
+    emission_latencies_frames: list[int] = field(default_factory=list)
 
 
 @dataclass
@@ -165,7 +168,13 @@ class StreamingPipeline:
             return []
         frames = frame_signal(snapshot, self.frame_config)
         features = self.feature_extractor(frames)
-        emissions = self.decoder.feed(self.state.decoder_state, features)
+        # Frames are decoded one at a time so emission latencies are
+        # recorded against the frame that actually emitted the token.
+        emissions: list[int] = []
+        for index in range(features.shape[0]):
+            step = self.decoder.feed(self.state.decoder_state, features[index : index + 1])
+            self._record_emission_latencies(step)
+            emissions.extend(step)
         consumed = min(self.hop_length_samples * frames.shape[0], snapshot.shape[0])
         self._consume(consumed)
         self.state.total_samples_consumed += int(samples.shape[0])
@@ -180,14 +189,41 @@ class StreamingPipeline:
         assert self.state is not None
         self.state.buffer_samples = self.buffer.snapshot().reshape(-1).tolist()
 
+    def _record_emission_latencies(self, emissions: list[int]) -> None:
+        assert self.state is not None
+        if not emissions:
+            return
+        decoder_state = self.state.decoder_state
+        last_frame = decoder_state.frames_consumed - 1
+        starts = decoder_state.frame_indices[-len(emissions) :]
+        self.state.emission_latencies_frames.extend(
+            max(0, last_frame - int(start)) for start in starts
+        )
+
+    def _record_flushed_latency(self, tokens_before: int) -> None:
+        assert self.state is not None
+        decoder_state = self.state.decoder_state
+        added = len(decoder_state.tokens) - tokens_before
+        if added <= 0:
+            return
+        last_frame = max(0, decoder_state.frames_consumed - 1)
+        starts = decoder_state.frame_indices[-added:]
+        self.state.emission_latencies_frames.extend(
+            max(0, last_frame - int(start)) for start in starts
+        )
+
     def finalize(self) -> Hypothesis:
         """Flush the pipeline and return the final hypothesis."""
         snapshot = self.buffer.snapshot()
         if snapshot.shape[0] >= self.frame_length_samples:
             frames = frame_signal(snapshot, self.frame_config)
             features = self.feature_extractor(frames)
-            self.decoder.feed(self.state.decoder_state, features)
+            for index in range(features.shape[0]):
+                step = self.decoder.feed(self.state.decoder_state, features[index : index + 1])
+                self._record_emission_latencies(step)
+        tokens_before = len(self.state.decoder_state.tokens)
         self.decoder.finalize(self.state.decoder_state)
+        self._record_flushed_latency(tokens_before)
         self.buffer.reset()
         self._sync_state()
         return self.decoder.to_hypothesis(self.state.decoder_state)
@@ -274,6 +310,7 @@ def serialize_pipeline_state(state: StreamingPipelineState) -> dict[str, Any]:
         "frame_length_samples": state.frame_length_samples,
         "hop_length_samples": state.hop_length_samples,
         "cancelled": state.cancelled,
+        "emission_latencies_frames": list(state.emission_latencies_frames),
     }
 
 
@@ -287,6 +324,7 @@ def deserialize_pipeline_state(payload: dict[str, Any]) -> StreamingPipelineStat
         frame_length_samples=int(payload.get("frame_length_samples", 400)),
         hop_length_samples=int(payload.get("hop_length_samples", 160)),
         cancelled=bool(payload.get("cancelled", False)),
+        emission_latencies_frames=[int(v) for v in payload.get("emission_latencies_frames", [])],
     )
 
 
