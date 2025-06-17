@@ -51,6 +51,22 @@ from wavrail.types import FrameConfig
 from wavrail.vocab import Vocab
 
 
+@dataclass(frozen=True)
+class LatencyReport:
+    """Frame-grid latency accounting for a streamed hypothesis.
+
+    ``algorithmic_ms`` is the fixed cost of frame accumulation plus
+    confirmation hops; the emission values summarise the recorded
+    per-token delays. These numbers describe the algorithm, not
+    wall-clock scheduling jitter.
+    """
+
+    algorithmic_ms: float
+    mean_emission_ms: float
+    max_emission_ms: float
+    tokens_emitted: int
+
+
 @dataclass
 class StreamingPipelineState:
     """Snapshot of a streaming pipeline's mutable state."""
@@ -154,6 +170,20 @@ class StreamingPipeline:
         delay = max(1, int(self.decoder.emission_delay))
         samples = self.frame_length_samples + (delay - 1) * self.hop_length_samples
         return samples / self.sample_rate * 1000.0
+
+    def latency_report(self) -> LatencyReport:
+        """Summarise algorithmic and per-token emission latency."""
+        assert self.state is not None
+        hop_ms = self.hop_length_samples / self.sample_rate * 1000.0
+        latencies = self.state.emission_latencies_frames
+        mean_frames = sum(latencies) / len(latencies) if latencies else 0.0
+        max_frames = max(latencies, default=0)
+        return LatencyReport(
+            algorithmic_ms=self.algorithmic_latency_ms,
+            mean_emission_ms=mean_frames * hop_ms,
+            max_emission_ms=float(max_frames) * hop_ms,
+            tokens_emitted=len(latencies),
+        )
 
     def feed_samples(self, samples: np.ndarray) -> list[int]:
         """Push a chunk of mono audio through the pipeline."""
@@ -329,6 +359,7 @@ def deserialize_pipeline_state(payload: dict[str, Any]) -> StreamingPipelineStat
 
 
 __all__ = [
+    "LatencyReport",
     "StreamingPipeline",
     "StreamingPipelineState",
     "deserialize_pipeline_state",
