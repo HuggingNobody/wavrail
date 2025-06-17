@@ -313,6 +313,8 @@ def measure_rtf(
     chunk_size: int = 1600,
 ) -> dict[str, float]:
     """Run ``pipeline`` over ``samples`` and report real-time factor."""
+    if pipeline.is_cancelled:
+        raise PipelineError("pipeline was cancelled; call reset() before measuring")
     if samples.ndim != 1:
         raise PipelineError("samples must be 1-D (mono)")
     duration = samples.shape[0] / float(pipeline.sample_rate)
