@@ -139,6 +139,19 @@ class StreamingPipeline:
         assert self.state is not None
         self.state.cancelled = True
 
+    @property
+    def algorithmic_latency_ms(self) -> float:
+        """Earliest emission time for the very first audio sample.
+
+        One frame length of accumulation plus ``emission_delay - 1``
+        confirmation hops. This is frame-grid accounting, not
+        wall-clock scheduling delay.
+        """
+        assert self.decoder is not None
+        delay = max(1, int(self.decoder.emission_delay))
+        samples = self.frame_length_samples + (delay - 1) * self.hop_length_samples
+        return samples / self.sample_rate * 1000.0
+
     def feed_samples(self, samples: np.ndarray) -> list[int]:
         """Push a chunk of mono audio through the pipeline."""
         if self.is_cancelled:
