@@ -192,6 +192,9 @@ class StreamingPipeline:
         if samples.ndim != 1:
             raise PipelineError("samples must be 1-D (mono)")
         self.buffer.extend(samples.reshape(-1, 1))
+        # accounting covers every ingested chunk, including feeds that
+        # only accumulate into the buffer below the frame length
+        self.state.total_samples_consumed += int(samples.shape[0])
         snapshot = self.buffer.snapshot()
         if snapshot.shape[0] < self.frame_length_samples:
             self._sync_state()
@@ -207,7 +210,6 @@ class StreamingPipeline:
             emissions.extend(step)
         consumed = min(self.hop_length_samples * frames.shape[0], snapshot.shape[0])
         self._consume(consumed)
-        self.state.total_samples_consumed += int(samples.shape[0])
         self._sync_state()
         return emissions
 
