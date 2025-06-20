@@ -60,14 +60,28 @@ class PrefixBeamSearch:
 
     def decode(self, log_posteriors: np.ndarray) -> Hypothesis:
         """Return the highest-scoring hypothesis for ``log_posteriors``."""
+        return self.decode_nbest(log_posteriors, 1)[0]
+
+    def decode_nbest(self, log_posteriors: np.ndarray, k: int) -> list[Hypothesis]:
+        """Return up to ``k`` hypotheses ordered by descending score.
+
+        Fewer than ``k`` hypotheses come back when the beam holds
+        fewer reachable prefixes. Scores are CTC prefix
+        probabilities within the beam, so the ordering ranks label
+        sequences, not individual alignment paths.
+        """
+        if k < 1:
+            raise DecodingError("k must be >= 1")
         self._validate(log_posteriors)
         if log_posteriors.shape[0] == 0:
-            return Hypothesis(tokens=(), text="", confidence=0.0)
+            return [Hypothesis(tokens=(), text="", confidence=0.0)]
         ranked = self._search(log_posteriors)
         if not ranked:
-            return Hypothesis(tokens=(), text="", confidence=0.0)
-        prefix, score = ranked[0]
-        return self._to_hypothesis(prefix, score, log_posteriors.shape[0])
+            return [Hypothesis(tokens=(), text="", confidence=0.0)]
+        return [
+            self._to_hypothesis(prefix, score, log_posteriors.shape[0])
+            for prefix, score in ranked[:k]
+        ]
 
     def _validate(self, log_posteriors: np.ndarray) -> None:
         if log_posteriors.ndim != 2:
