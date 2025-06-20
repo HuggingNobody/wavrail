@@ -57,6 +57,8 @@ class PrefixBeamSearch:
             raise DecodingError("beam must be >= 1")
         if self.pruning_threshold > 0.0:
             raise DecodingError("pruning_threshold must be <= 0 (log-probability)")
+        if self.max_symbols_per_frame is not None and self.max_symbols_per_frame < 1:
+            raise DecodingError("max_symbols_per_frame must be >= 1 or None")
 
     def decode(self, log_posteriors: np.ndarray) -> Hypothesis:
         """Return the highest-scoring hypothesis for ``log_posteriors``."""
@@ -140,8 +142,17 @@ class PrefixBeamSearch:
         return self._prune(acc)
 
     def _candidate_symbols(self, frame: np.ndarray, blank: int) -> list[int]:
+        """Non-blank symbols of this frame, best first, optionally capped.
+
+        Capping to ``max_symbols_per_frame`` bounds the per-frame
+        work at the cost of never extending with symbols the
+        acoustic model ranked below the cap in that frame.
+        """
         order = np.argsort(frame, kind="stable")[::-1]
-        return [int(s) for s in order if int(s) != blank]
+        symbols = [int(s) for s in order if int(s) != blank]
+        if self.max_symbols_per_frame is not None:
+            symbols = symbols[: self.max_symbols_per_frame]
+        return symbols
 
     def _prune(
         self, acc: dict[tuple[int, ...], list[float]]
