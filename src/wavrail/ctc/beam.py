@@ -141,7 +141,16 @@ class PrefixBeamSearch:
             key=lambda item: float(np.logaddexp(item[1][0], item[1][1])),
             reverse=True,
         )
-        return dict(ranked[: self.beam])
+        kept = ranked[: self.beam]
+        if kept:
+            best = float(np.logaddexp(kept[0][1][0], kept[0][1][1]))
+            floor = best + self.pruning_threshold
+            kept = [
+                (prefix, state)
+                for prefix, state in kept
+                if float(np.logaddexp(state[0], state[1])) >= floor
+            ]
+        return dict(kept)
 
 
 __all__ = ["PrefixBeamSearch"]
