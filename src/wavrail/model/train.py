@@ -31,6 +31,8 @@ class TrainingConfig:
     grad_clip: float = 1.0
     hidden_dim: int = 32
     seed: int = 0
+    lr_decay_factor: float = 1.0
+    lr_decay_every: int = 0
 
     def __post_init__(self) -> None:
         if self.n_epochs < 0:
@@ -43,6 +45,10 @@ class TrainingConfig:
             raise ModelError("grad_clip must be > 0")
         if self.hidden_dim < 1:
             raise ModelError("hidden_dim must be >= 1")
+        if self.lr_decay_factor <= 0:
+            raise ModelError("lr_decay_factor must be > 0")
+        if self.lr_decay_every < 0:
+            raise ModelError("lr_decay_every must be >= 0")
 
 
 @dataclass
@@ -50,6 +56,7 @@ class TrainingReport:
     """Result of a training run."""
 
     epoch_losses: list[float] = field(default_factory=list)
+    learning_rates: list[float] = field(default_factory=list)
     final_loss: float = 0.0
     initial_loss: float = 0.0
     n_train_examples: int = 0
@@ -70,6 +77,17 @@ def _require_torch():
             "install with `pip install wavrail[torch]`"
         ) from exc
     return torch
+
+
+def _lr_for_epoch(config: TrainingConfig, epoch: int) -> float:
+    """Step-decay schedule: ``lr * factor ** (epoch // every)``.
+
+    ``lr_decay_every <= 0`` disables the schedule and keeps the
+    configured learning rate for every epoch.
+    """
+    if config.lr_decay_every <= 0:
+        return config.learning_rate
+    return config.learning_rate * config.lr_decay_factor ** (epoch // config.lr_decay_every)
 
 
 def train_synthetic(
@@ -101,6 +119,10 @@ def train_synthetic(
     )
     optimiser = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
     for epoch in range(config.n_epochs):
+        lr = _lr_for_epoch(config, epoch)
+        for group in optimiser.param_groups:
+            group["lr"] = lr
+        report.learning_rates.append(lr)
         total_loss = 0.0
         n_batches = 0
         for batch_start in range(0, len(train_examples), config.batch_size):
