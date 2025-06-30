@@ -32,6 +32,18 @@ class TrainingConfig:
     hidden_dim: int = 32
     seed: int = 0
 
+    def __post_init__(self) -> None:
+        if self.n_epochs < 0:
+            raise ModelError("n_epochs must be >= 0")
+        if self.batch_size < 1:
+            raise ModelError("batch_size must be >= 1")
+        if self.learning_rate <= 0:
+            raise ModelError("learning_rate must be > 0")
+        if self.grad_clip <= 0:
+            raise ModelError("grad_clip must be > 0")
+        if self.hidden_dim < 1:
+            raise ModelError("hidden_dim must be >= 1")
+
 
 @dataclass
 class TrainingReport:
