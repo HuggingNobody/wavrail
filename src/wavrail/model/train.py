@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from wavrail.errors import ModelError
+from wavrail.vocab import Vocab
 
 
 @dataclass
@@ -93,16 +94,25 @@ def _lr_for_epoch(config: TrainingConfig, epoch: int) -> float:
 def train_synthetic(
     config: TrainingConfig,
     dataset_factory: Callable[[int], tuple[list, list]],
+    *,
+    vocab: Vocab | None = None,
 ) -> TrainingReport:
     """Train a small CTC acoustic model on a synthetic dataset.
 
     ``dataset_factory`` is invoked with a seed and returns a
     ``(train, dev)`` pair of :class:`wavrail.model.SyntheticExample`
-    lists. The training loop uses cross-entropy on the CTC log
-    posterior matrix averaged across the time axis; this is a
-    compact stand-in for a full CTC forward-backward and is
-    sufficient to demonstrate that the loss decreases on the
-    synthetic task.
+    lists. The training loop minimises the CTC negative
+    log-likelihood (``torch.nn.functional.ctc_loss``) with gradient
+    clipping; all randomness is seeded so the loss curve is
+    reproducible.
+
+    When ``vocab`` is supplied it sizes the CTC head and labels
+    decoded ids during dev evaluation, so ``dev_cer`` is directly
+    comparable to the public character-level metric. The dev split
+    is tiny synthetic formant audio: a small model routinely fails
+    to generalise to it, and a dev CER at or above 1.0 is reported
+    as-is rather than hidden. It is a pipeline-health signal, not
+    an accuracy claim.
     """
     torch = _require_torch()
     train_examples, dev_examples = dataset_factory(config.seed)
@@ -112,10 +122,14 @@ def train_synthetic(
     from wavrail.model.network import AcousticModel, build_targets
 
     torch.manual_seed(config.seed)
+    # without a dataset vocab, fall back to a head width that comfortably
+    # exceeds any target id the synthetic builder can emit
+    fallback_width = train_examples[0].features.shape[1] + 8
+    model_vocab_size = vocab.size if vocab is not None else fallback_width
     model = AcousticModel(
         input_dim=train_examples[0].features.shape[1],
         hidden_dim=config.hidden_dim,
-        vocab_size=train_examples[0].features.shape[1] + 8,
+        vocab_size=model_vocab_size,
     )
     optimiser = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
     for epoch in range(config.n_epochs):
@@ -146,7 +160,7 @@ def train_synthetic(
         report.epoch_losses.append(epoch_loss)
     report.final_loss = report.epoch_losses[-1] if report.epoch_losses else 0.0
     if dev_examples:
-        report.dev_cer = _evaluate_dev(model, dev_examples)
+        report.dev_cer = _evaluate_dev(model, dev_examples, vocab)
     return report
 
 
@@ -165,16 +179,26 @@ def _ctc_loss(log_probs: object, targets: object, target_lengths: object) -> obj
     )
 
 
-def _evaluate_dev(model: object, dev_examples: list) -> float:
+def _evaluate_dev(model: object, dev_examples: list, vocab: Vocab | None) -> float:
+    """Held-out CER on the synthetic dev split.
+
+    Uses the public character-level edit alignment so the number is
+    directly comparable to corpus CER. When ``vocab`` is ``None``
+    (or its width does not match the model head) a placeholder
+    label set is derived from the model width; the rate is then
+    only a pipeline-health signal because decoded ids cannot be
+    mapped back to dataset tokens.
+    """
     torch = _require_torch()
     from wavrail.ctc import greedy_decode
-    from wavrail.vocab import Vocab
+    from wavrail.metrics.cer import character_edit_ops
 
     vocab_size = int(model.vocab_size)  # type: ignore[attr-defined]
-    labels = ["<blank>"] + [f"sym{i}" for i in range(1, vocab_size)]
-    vocab = Vocab.from_labels(labels)
-    total_edits = 0
-    total_ref = 0
+    if vocab is None or vocab.size != vocab_size:
+        labels = ["<blank>"] + [f"sym{i}" for i in range(1, vocab_size)]
+        vocab = Vocab.from_labels(labels)
+    total_errors = 0
+    total_length = 0
     model.eval()  # type: ignore[attr-defined]
     with torch.no_grad():  # type: ignore[attr-defined]
         for example in dev_examples:
@@ -183,14 +207,13 @@ def _evaluate_dev(model: object, dev_examples: list) -> float:
             log_probs = torch.log_softmax(logits, dim=-1)
             posteriors = log_probs[0].detach().numpy()
             hyp = greedy_decode(posteriors, vocab)
-            ref = list(example.text)
-            hyp_chars = [vocab.id_to_token(t) for t in hyp.tokens]
-            for ref_tok, hyp_tok in zip(ref, hyp_chars, strict=False):
-                if ref_tok != hyp_tok:
-                    total_edits += 1
-            total_edits += abs(len(ref) - len(hyp_chars))
-            total_ref += len(ref)
-    return total_edits / max(total_ref, 1)
+            hyp_text = "".join(vocab.id_to_token(t) for t in hyp.tokens)
+            ops = character_edit_ops(example.text, hyp_text)
+            total_errors += ops.errors
+            total_length += ops.length
+    if total_length == 0:
+        return 0.0
+    return total_errors / total_length
 
 
 __all__ = ["TrainingConfig", "TrainingReport", "train_synthetic"]
