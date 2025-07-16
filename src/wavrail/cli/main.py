@@ -87,6 +87,17 @@ def _add_train(sub: argparse._SubParsersAction) -> None:
     parser = sub.add_parser("train", help="Train the synthetic acoustic model.")
     parser.add_argument("--epochs", type=int, default=4)
     parser.add_argument("--hidden-dim", type=int, default=32)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument(
+        "--save-checkpoint",
+        default=None,
+        help="write a resumable checkpoint to this path after training",
+    )
+    parser.add_argument(
+        "--resume",
+        default=None,
+        help="resume training from this checkpoint file",
+    )
     parser.add_argument(
         "--vocab",
         default="<blank>,a,b,c,d",
@@ -238,23 +249,21 @@ def _run_train(args: argparse.Namespace) -> None:
     config = TrainingConfig(
         n_epochs=args.epochs,
         hidden_dim=args.hidden_dim,
+        learning_rate=args.learning_rate,
     )
 
     def factory(seed: int) -> tuple[list, list]:
         examples = build_synthetic_dataset(vocab, n_examples=4, duration_s=0.2, seed=seed)
         return examples[:3], examples[3:]
 
-    report = train_synthetic(config, factory)
-    print(
-        json.dumps(
-            {
-                "initial_loss": report.initial_loss,
-                "final_loss": report.final_loss,
-                "loss_decreased": report.loss_decreased(),
-                "epoch_losses": report.epoch_losses,
-            }
-        )
+    report = train_synthetic(
+        config,
+        factory,
+        vocab=vocab,
+        resume_from=args.resume,
+        save_to=args.save_checkpoint,
     )
+    print(json.dumps(report.to_dict()))
 
 
 def _run_demo(args: argparse.Namespace) -> None:
