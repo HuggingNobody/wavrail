@@ -70,6 +70,35 @@ class TrainingReport:
         """Return True if the final loss is strictly less than the initial."""
         return self.final_loss < self.initial_loss
 
+    def to_dict(self) -> dict[str, object]:
+        """JSON-friendly snapshot of the run (floats and lists only)."""
+        return {
+            "epoch_losses": [float(v) for v in self.epoch_losses],
+            "learning_rates": [float(v) for v in self.learning_rates],
+            "resumed_from_epoch": int(self.resumed_from_epoch),
+            "final_loss": float(self.final_loss),
+            "initial_loss": float(self.initial_loss),
+            "n_train_examples": int(self.n_train_examples),
+            "n_dev_examples": int(self.n_dev_examples),
+            "dev_cer": None if self.dev_cer is None else float(self.dev_cer),
+            "loss_decreased": self.loss_decreased(),
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> TrainingReport:
+        """Rebuild a report snapshot; ``loss_decreased`` is recomputed."""
+        cer = payload.get("dev_cer")
+        return cls(
+            epoch_losses=[float(v) for v in payload.get("epoch_losses", [])],
+            learning_rates=[float(v) for v in payload.get("learning_rates", [])],
+            resumed_from_epoch=int(payload.get("resumed_from_epoch", 0)),
+            final_loss=float(payload.get("final_loss", 0.0)),
+            initial_loss=float(payload.get("initial_loss", 0.0)),
+            n_train_examples=int(payload.get("n_train_examples", 0)),
+            n_dev_examples=int(payload.get("n_dev_examples", 0)),
+            dev_cer=None if cer is None else float(cer),
+        )
+
 
 def _require_torch():
     try:
