@@ -14,7 +14,8 @@ benchmark.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 
 import numpy as np
 
@@ -58,6 +59,7 @@ class TrainingReport:
 
     epoch_losses: list[float] = field(default_factory=list)
     learning_rates: list[float] = field(default_factory=list)
+    resumed_from_epoch: int = 0
     final_loss: float = 0.0
     initial_loss: float = 0.0
     n_train_examples: int = 0
@@ -96,6 +98,8 @@ def train_synthetic(
     dataset_factory: Callable[[int], tuple[list, list]],
     *,
     vocab: Vocab | None = None,
+    resume_from: str | Path | None = None,
+    save_to: str | Path | None = None,
 ) -> TrainingReport:
     """Train a small CTC acoustic model on a synthetic dataset.
 
@@ -132,7 +136,10 @@ def train_synthetic(
         vocab_size=model_vocab_size,
     )
     optimiser = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-    for epoch in range(config.n_epochs):
+    start_epoch = 0
+    if resume_from is not None:
+        start_epoch = _apply_resume(model, optimiser, config, report, resume_from)
+    for epoch in range(start_epoch, config.n_epochs):
         lr = _lr_for_epoch(config, epoch)
         for group in optimiser.param_groups:
             group["lr"] = lr
@@ -159,9 +166,56 @@ def train_synthetic(
             report.initial_loss = epoch_loss
         report.epoch_losses.append(epoch_loss)
     report.final_loss = report.epoch_losses[-1] if report.epoch_losses else 0.0
+    if save_to is not None:
+        from wavrail.model.checkpoint import Checkpoint, save_checkpoint
+
+        save_checkpoint(
+            Checkpoint(
+                epoch=config.n_epochs,
+                config=asdict(config),
+                model_state=model.state_dict(),
+                epoch_losses=list(report.epoch_losses),
+                optimizer_state=optimiser.state_dict(),
+            ),
+            save_to,
+        )
     if dev_examples:
         report.dev_cer = _evaluate_dev(model, dev_examples, vocab)
     return report
+
+
+def _apply_resume(
+    model: object,
+    optimiser: object,
+    config: TrainingConfig,
+    report: TrainingReport,
+    resume_from: str | Path,
+) -> int:
+    """Restore weights, optimiser state, and history; return the next epoch."""
+    from wavrail.model.checkpoint import load_checkpoint
+
+    checkpoint = load_checkpoint(resume_from)
+    _check_resume_compatible(checkpoint.config, config)
+    model.load_state_dict(checkpoint.model_state)  # type: ignore[attr-defined]
+    if checkpoint.optimizer_state is not None:
+        optimiser.load_state_dict(checkpoint.optimizer_state)  # type: ignore[attr-defined]
+    report.epoch_losses.extend(checkpoint.epoch_losses)
+    if checkpoint.epoch_losses:
+        report.initial_loss = checkpoint.epoch_losses[0]
+    report.resumed_from_epoch = checkpoint.epoch
+    return checkpoint.epoch
+
+
+def _check_resume_compatible(saved: dict[str, object], config: TrainingConfig) -> None:
+    """Every config key except ``n_epochs`` must match the checkpoint."""
+    current = asdict(config)
+    for key, value in saved.items():
+        if key == "n_epochs":
+            continue  # extending the schedule is the point of resuming
+        if key in current and current[key] != value:
+            raise ModelError(
+                f"checkpoint config mismatch: {key}={value!r} != current {current[key]!r}"
+            )
 
 
 def _ctc_loss(log_probs: object, targets: object, target_lengths: object) -> object:
