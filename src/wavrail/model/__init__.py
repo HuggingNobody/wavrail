@@ -1,11 +1,16 @@
 """Compact acoustic model with the optional ``torch`` extra.
 
-The :class:`AcousticModel` is a small encoder (GRU by default
-with an optional ``conformer-lite`` configuration) followed by a
-linear CTC head over log-mel features. The module depends on
-PyTorch, which is an *optional* extra of wavrail: importing this
-subpackage without ``torch`` installed raises a clear
-:class:`ModelError`.
+The :class:`AcousticModel` is a small two-layer GRU encoder
+followed by a linear CTC head over log-mel features. PyTorch is
+an *optional* extra of wavrail: importing
+:mod:`wavrail.model.network` or :mod:`wavrail.model.checkpoint`
+helpers without ``torch`` installed raises a clear
+:class:`ModelError`, while the config and report dataclasses stay
+importable.
+
+Checkpoints (:func:`save_checkpoint` / :func:`load_checkpoint`)
+make a training run resumable; the resume path is covered by
+equivalence tests against uninterrupted runs.
 
 The training entry point :func:`train_synthetic` demonstrates a
 deterministic, small-scale training loop on a fully synthetic
@@ -14,6 +19,12 @@ formant dataset. The synthetic dataset is explicitly labelled as
 loop end-to-end.
 """
 
+from wavrail.model.checkpoint import (
+    CHECKPOINT_SCHEMA_VERSION,
+    Checkpoint,
+    load_checkpoint,
+    save_checkpoint,
+)
 from wavrail.model.synthetic import (
     SyntheticExample,
     build_synthetic_dataset,
@@ -25,9 +36,13 @@ from wavrail.model.train import (
 )
 
 __all__ = [
+    "CHECKPOINT_SCHEMA_VERSION",
+    "Checkpoint",
     "SyntheticExample",
     "TrainingConfig",
     "TrainingReport",
     "build_synthetic_dataset",
+    "load_checkpoint",
+    "save_checkpoint",
     "train_synthetic",
 ]

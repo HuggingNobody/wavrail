@@ -56,6 +56,19 @@ def test_load_rejects_missing_keys(tmp_path) -> None:
         load_checkpoint(path)
 
 
+def test_public_exports() -> None:
+    import wavrail.model as model
+
+    for name in (
+        "Checkpoint",
+        "save_checkpoint",
+        "load_checkpoint",
+        "CHECKPOINT_SCHEMA_VERSION",
+    ):
+        assert name in model.__all__
+        assert hasattr(model, name)
+
+
 def test_load_rejects_future_schema(tmp_path) -> None:
     torch = pytest.importorskip("torch")
     path = tmp_path / "future.pt"
