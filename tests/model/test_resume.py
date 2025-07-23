@@ -51,3 +51,28 @@ def test_save_to_creates_parent_directories(tmp_path) -> None:
     ckpt = tmp_path / "nested" / "dir" / "ckpt.pt"
     train_synthetic(_config(1, hidden_dim=8), _factory, save_to=ckpt)
     assert ckpt.is_file()
+
+
+def test_resume_past_saved_epoch_is_noop(tmp_path) -> None:
+    ckpt = tmp_path / "ckpt.pt"
+    first = train_synthetic(_config(2), _factory, save_to=ckpt)
+    resumed = train_synthetic(_config(2), _factory, resume_from=ckpt)
+    assert resumed.resumed_from_epoch == 2
+    assert resumed.epoch_losses == first.epoch_losses
+    assert resumed.learning_rates == []
+
+
+def test_resume_continues_lr_schedule(tmp_path) -> None:
+    ckpt = tmp_path / "ckpt.pt"
+    decay = {
+        "batch_size": 2,
+        "hidden_dim": 8,
+        "learning_rate": 1e-2,
+        "lr_decay_factor": 0.5,
+        "lr_decay_every": 1,
+        "seed": 3,
+    }
+    train_synthetic(TrainingConfig(n_epochs=2, **decay), _factory, save_to=ckpt)
+    resumed = train_synthetic(TrainingConfig(n_epochs=4, **decay), _factory, resume_from=ckpt)
+    # only epochs 2 and 3 run after the resume, continuing the decay
+    assert resumed.learning_rates == pytest.approx([1e-2 * 0.5**2, 1e-2 * 0.5**3])
