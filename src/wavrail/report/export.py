@@ -133,11 +133,50 @@ def hypotheses_to_markdown(
     return f"# {title}\n\n{table}"
 
 
+def score_report_to_markdown(payload: Mapping[str, Any]) -> str:
+    """Render a score-report payload (``score_report_to_dict``) as Markdown.
+
+    The summary block mirrors the aggregate fields of the payload;
+    the table lists per-utterance counts so regressions can be
+    traced to individual utterances.
+    """
+    utterances = list(payload.get("utterances", []))
+    lines = [
+        f"# {payload.get('title', 'score')}",
+        "",
+        f"- unit: {payload.get('unit', 'character')}",
+        f"- utterances: {len(utterances)}",
+        f"- total errors: {payload.get('total_errors', 0)}",
+        f"- total length: {payload.get('total_length', 0)}",
+        f"- error rate: {float(payload.get('error_rate', 0.0)):.6f}",
+        "",
+    ]
+    rows = []
+    for utterance in utterances:
+        length = int(utterance.get("length", 0))
+        errors = int(utterance.get("errors", 0))
+        rate = f"{errors / length:.4f}" if length else "-"
+        rows.append(
+            [
+                utterance.get("name", ""),
+                errors,
+                length,
+                int(utterance.get("substitutions", 0)),
+                int(utterance.get("insertions", 0)),
+                int(utterance.get("deletions", 0)),
+                rate,
+            ]
+        )
+    table = markdown_table(["name", "errors", "length", "sub", "ins", "del", "rate"], rows)
+    return "\n".join(lines) + table
+
+
 __all__ = [
     "hypotheses_to_markdown",
     "hypothesis_record",
     "markdown_table",
     "read_jsonl",
+    "score_report_to_markdown",
     "to_jsonl",
     "write_jsonl",
 ]
