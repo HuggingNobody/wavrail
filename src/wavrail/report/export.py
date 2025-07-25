@@ -11,7 +11,7 @@ backslashes, and newlines are the hazardous characters.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -84,4 +84,29 @@ def read_jsonl(path: str | Path) -> list[dict[str, Any]]:
     return records
 
 
-__all__ = ["read_jsonl", "to_jsonl", "write_jsonl"]
+def _escape_cell(value: object) -> str:
+    text = str(value)
+    text = text.replace("\\", "\\\\").replace("|", "\\|")
+    return " ".join(text.splitlines())
+
+
+def markdown_table(headers: Sequence[str], rows: Iterable[Sequence[object]]) -> str:
+    """Render a GitHub-flavoured Markdown table with escaped cells.
+
+    Backslashes and pipes are escaped, newlines inside cells are
+    flattened to spaces, and every row must match the header width
+    so ragged data fails loudly instead of rendering broken tables.
+    """
+    if not headers:
+        raise SchemaError("markdown table needs at least one column")
+    width = len(headers)
+    lines = ["| " + " | ".join(_escape_cell(h) for h in headers) + " |"]
+    lines.append("|" + "|".join(" --- " for _ in headers) + "|")
+    for row in rows:
+        if len(row) != width:
+            raise SchemaError(f"row has {len(row)} cells, expected {width}")
+        lines.append("| " + " | ".join(_escape_cell(cell) for cell in row) + " |")
+    return "\n".join(lines) + "\n"
+
+
+__all__ = ["markdown_table", "read_jsonl", "to_jsonl", "write_jsonl"]
