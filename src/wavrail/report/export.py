@@ -15,7 +15,9 @@ from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from wavrail.ctc._common import Hypothesis
 from wavrail.errors import SchemaError
+from wavrail.report.schema import hypothesis_to_dict
 
 
 def _dumps(record: Mapping[str, Any]) -> str:
@@ -109,4 +111,33 @@ def markdown_table(headers: Sequence[str], rows: Iterable[Sequence[object]]) -> 
     return "\n".join(lines) + "\n"
 
 
-__all__ = ["markdown_table", "read_jsonl", "to_jsonl", "write_jsonl"]
+def hypothesis_record(name: str, hypothesis: Hypothesis) -> dict[str, Any]:
+    """Flat JSONL-ready record: the hypothesis schema plus a ``name``."""
+    return {"name": name, **hypothesis_to_dict(hypothesis)}
+
+
+def hypotheses_to_markdown(
+    records: Iterable[Mapping[str, Any]], *, title: str = "hypotheses"
+) -> str:
+    """Render hypothesis records as a Markdown report with one row each."""
+    rows = [
+        [
+            record.get("name", ""),
+            record.get("text", ""),
+            f"{float(record.get('confidence', 0.0)):.6f}",
+            " ".join(str(token) for token in record.get("tokens", [])),
+        ]
+        for record in records
+    ]
+    table = markdown_table(["name", "text", "confidence", "tokens"], rows)
+    return f"# {title}\n\n{table}"
+
+
+__all__ = [
+    "hypotheses_to_markdown",
+    "hypothesis_record",
+    "markdown_table",
+    "read_jsonl",
+    "to_jsonl",
+    "write_jsonl",
+]
