@@ -169,7 +169,7 @@ def score_report_to_markdown(payload: Mapping[str, Any]) -> str:
             ]
         )
     table = markdown_table(["name", "errors", "length", "sub", "ins", "del", "rate"], rows)
-    return "\n".join(lines) + table
+    return "\n".join(lines) + "\n" + table
 
 
 def alignment_record(name: str, alignment: Alignment) -> dict[str, Any]:
