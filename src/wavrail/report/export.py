@@ -15,9 +15,10 @@ from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from wavrail.align import Alignment
 from wavrail.ctc._common import Hypothesis
 from wavrail.errors import SchemaError
-from wavrail.report.schema import hypothesis_to_dict
+from wavrail.report.schema import align_to_dict, hypothesis_to_dict
 
 
 def _dumps(record: Mapping[str, Any]) -> str:
@@ -171,7 +172,31 @@ def score_report_to_markdown(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines) + table
 
 
+def alignment_record(name: str, alignment: Alignment) -> dict[str, Any]:
+    """Flat JSONL-ready record: the alignment schema plus a ``name``."""
+    return {"name": name, **align_to_dict(alignment)}
+
+
+def alignments_to_markdown(
+    records: Iterable[Mapping[str, Any]], *, title: str = "alignment"
+) -> str:
+    """Render alignment records with one Markdown row per token."""
+    rows = []
+    for record in records:
+        name = record.get("name", "")
+        spans = list(record.get("frame_spans", []))
+        confidences = list(record.get("confidences", []))
+        for index, token in enumerate(record.get("tokens", [])):
+            start, end = spans[index] if index < len(spans) else (0, 0)
+            confidence = confidences[index] if index < len(confidences) else 0.0
+            rows.append([name, token, f"{start}-{end}", f"{float(confidence):.6f}"])
+    table = markdown_table(["name", "token", "frames", "confidence"], rows)
+    return f"# {title}\n\n{table}"
+
+
 __all__ = [
+    "alignment_record",
+    "alignments_to_markdown",
     "hypotheses_to_markdown",
     "hypothesis_record",
     "markdown_table",
