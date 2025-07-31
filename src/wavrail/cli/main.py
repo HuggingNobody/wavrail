@@ -80,6 +80,11 @@ def _add_align(sub: argparse._SubParsersAction) -> None:
         default="<blank>,a,b,c,d,e",
         help="comma-separated token labels",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the schema-versioned alignment record",
+    )
 
 
 def _add_score(sub: argparse._SubParsersAction) -> None:
@@ -243,14 +248,19 @@ def _run_align(args: argparse.Namespace) -> None:
     posteriors = energy[:, : vocab.size]
     posteriors = posteriors - posteriors.max(axis=1, keepdims=True)
     alignment = align_ctc(posteriors, args.transcript, vocab)
-    print(
-        json.dumps(
-            {
-                "tokens": list(alignment.tokens),
-                "frame_spans": [list(span) for span in alignment.frame_spans],
-            }
+    if args.json:
+        from wavrail.report import align_to_dict
+
+        print(json.dumps(align_to_dict(alignment), ensure_ascii=False))
+    else:
+        print(
+            json.dumps(
+                {
+                    "tokens": list(alignment.tokens),
+                    "frame_spans": [list(span) for span in alignment.frame_spans],
+                }
+            )
         )
-    )
 
 
 def _run_score(args: argparse.Namespace) -> None:
