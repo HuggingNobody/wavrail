@@ -13,6 +13,7 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
@@ -81,6 +82,17 @@ def _add_score(sub: argparse._SubParsersAction) -> None:
     parser.add_argument("reference", help="reference text")
     parser.add_argument("hypothesis", help="hypothesis text")
     parser.add_argument("--unit", choices=["character", "word"], default="character")
+    parser.add_argument(
+        "--format",
+        choices=["text", "json", "jsonl", "md"],
+        default="text",
+        help="report format: text summary, schema JSON, JSONL record, Markdown",
+    )
+    parser.add_argument(
+        "--output",
+        default="-",
+        help="write the report to this path instead of stdout ('-' = stdout)",
+    )
 
 
 def _add_train(sub: argparse._SubParsersAction) -> None:
@@ -232,13 +244,44 @@ def _run_align(args: argparse.Namespace) -> None:
 
 
 def _run_score(args: argparse.Namespace) -> None:
-    from wavrail.metrics import character_error_rate, word_error_rate
+    from wavrail.metrics import aggregate_score, character_error_rate, word_error_rate
 
-    if args.unit == "character":
-        rate = character_error_rate(args.reference, args.hypothesis)
+    if args.format == "text":
+        if args.unit == "character":
+            rate = character_error_rate(args.reference, args.hypothesis)
+        else:
+            rate = word_error_rate(args.reference, args.hypothesis)
+        _emit(args, json.dumps({"unit": args.unit, "rate": rate}))
+        return
+    from wavrail.report import score_report_to_dict, score_report_to_markdown, to_jsonl
+
+    corpus = aggregate_score(unit=args.unit)
+    corpus.add("cli", args.reference, args.hypothesis)
+    payload = score_report_to_dict(corpus, title="cli-score")
+    if args.format == "json":
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+    elif args.format == "jsonl":
+        text = to_jsonl([payload])
     else:
-        rate = word_error_rate(args.reference, args.hypothesis)
-    print(json.dumps({"unit": args.unit, "rate": rate}))
+        text = score_report_to_markdown(payload)
+    _emit(args, text)
+
+
+def _emit(args: argparse.Namespace, text: str) -> None:
+    """Print ``text`` or write it to ``args.output`` when set.
+
+    A single trailing newline is guaranteed for both destinations,
+    and missing parent directories are created so ``--output``
+    works on fresh paths.
+    """
+    body = text if text.endswith("\n") else text + "\n"
+    output = getattr(args, "output", "-")
+    if output and output != "-":
+        target = Path(output)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    else:
+        sys.stdout.write(body)
 
 
 def _run_train(args: argparse.Namespace) -> None:
