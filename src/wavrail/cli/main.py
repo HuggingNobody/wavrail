@@ -64,6 +64,11 @@ def _add_decode(sub: argparse._SubParsersAction) -> None:
         help="comma-separated token labels",
     )
     parser.add_argument("--beam", type=int, default=1, help="beam size (1 = greedy)")
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the schema-versioned hypothesis record",
+    )
 
 
 def _add_align(sub: argparse._SubParsersAction) -> None:
@@ -215,7 +220,12 @@ def _run_decode(args: argparse.Namespace) -> None:
         posteriors = posteriors - posteriors.max(axis=1, keepdims=True)
         beam = PrefixBeamSearch(vocab=vocab, beam=args.beam)
         hyp = beam.decode(posteriors)
-    print(json.dumps({"tokens": list(hyp.tokens), "text": hyp.text}))
+    if args.json:
+        from wavrail.report import hypothesis_to_dict
+
+        print(json.dumps(hypothesis_to_dict(hyp), ensure_ascii=False))
+    else:
+        print(json.dumps({"tokens": list(hyp.tokens), "text": hyp.text}))
 
 
 def _run_align(args: argparse.Namespace) -> None:
