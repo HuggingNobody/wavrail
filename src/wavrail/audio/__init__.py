@@ -12,6 +12,7 @@ exported by a given release.
 """
 
 from wavrail.audio.downmix import downmix_to_mono
+from wavrail.audio.energy import peak_amplitude, rms_energy
 from wavrail.audio.info import inspect_wav
 from wavrail.audio.quality import clipping_detected, silence_ratio
 from wavrail.audio.resample import resample
@@ -28,8 +29,10 @@ __all__ = [
     "clipping_detected",
     "downmix_to_mono",
     "inspect_wav",
+    "peak_amplitude",
     "read_wav",
     "resample",
+    "rms_energy",
     "silence_ratio",
     "synthesize_chirp",
     "synthesize_formant_stack",
