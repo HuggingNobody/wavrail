@@ -37,7 +37,8 @@ def apply_fade(
 
     The output keeps the input shape and ``float32`` dtype. Raises
     :class:`AudioError` for negative fades, non-positive sample
-    rates, empty input, or fades longer than the signal.
+    rates, empty input, or either fade longer than the signal.
+    Overlapping ramps are allowed and multiply into each other.
     """
     if sample_rate <= 0:
         raise AudioError("sample_rate must be positive")
@@ -49,8 +50,8 @@ def apply_fade(
     length = arr.shape[-1]
     n_in = round(fade_in_s * sample_rate)
     n_out = round(fade_out_s * sample_rate)
-    if n_in + n_out > length:
-        raise AudioError("fade durations exceed the signal length")
+    if n_in > length or n_out > length:
+        raise AudioError("fade duration exceeds the signal length")
     envelope = np.ones(length, dtype=np.float64)
     if n_in > 0:
         envelope[:n_in] *= _raised_cosine(n_in, rising=True)
