@@ -19,6 +19,7 @@ from wavrail.audio.energy import (
     rms_energy,
     to_dbfs,
 )
+from wavrail.audio.envelope import apply_fade
 from wavrail.audio.info import inspect_wav
 from wavrail.audio.normalize import apply_gain_db, normalize_peak
 from wavrail.audio.quality import clipping_detected, silence_ratio
@@ -33,6 +34,7 @@ from wavrail.audio.synthetic import (
 from wavrail.audio.wav import read_wav, write_wav
 
 __all__ = [
+    "apply_fade",
     "apply_gain_db",
     "clipping_detected",
     "crest_factor",
