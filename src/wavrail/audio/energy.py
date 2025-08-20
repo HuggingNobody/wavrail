@@ -12,6 +12,8 @@ statistics are undefined when there is not a single sample.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from wavrail.errors import AudioError
@@ -41,4 +43,36 @@ def rms_energy(samples: AudioArray) -> float:
     return float(np.sqrt(np.mean(flat * flat)))
 
 
-__all__ = ["peak_amplitude", "rms_energy"]
+def crest_factor(samples: AudioArray) -> float:
+    """Return the peak-to-RMS ratio of ``samples``.
+
+    The crest factor separates impulsive signals (high ratio) from
+    steady tones (ratio near ``sqrt(2)`` for a sine). A silent
+    buffer has no meaningful ratio; ``0.0`` is returned instead of
+    dividing by zero.
+    """
+    rms = rms_energy(samples)
+    if rms == 0.0:
+        return 0.0
+    return peak_amplitude(samples) / rms
+
+
+def to_dbfs(value: float) -> float:
+    """Convert a linear amplitude in ``(0, 1]`` to decibels relative to full scale."""
+    if not 0.0 < value <= 1.0:
+        raise AudioError("to_dbfs requires a linear amplitude in (0, 1]")
+    return float(20.0 * math.log10(value))
+
+
+def from_dbfs(db: float) -> float:
+    """Convert a level in ``(-inf, 0]`` dBFS back to a linear amplitude.
+
+    ``-inf`` maps to ``0.0``; positive or NaN levels are rejected
+    because full scale is the ceiling of the representation.
+    """
+    if math.isnan(db) or db > 0.0:
+        raise AudioError("from_dbfs requires a level <= 0 dBFS")
+    return float(10.0 ** (db / 20.0))
+
+
+__all__ = ["crest_factor", "from_dbfs", "peak_amplitude", "rms_energy", "to_dbfs"]
