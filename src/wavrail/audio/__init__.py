@@ -20,6 +20,7 @@ from wavrail.audio.energy import (
     to_dbfs,
 )
 from wavrail.audio.info import inspect_wav
+from wavrail.audio.normalize import apply_gain_db, normalize_peak
 from wavrail.audio.quality import clipping_detected, silence_ratio
 from wavrail.audio.resample import resample
 from wavrail.audio.synthetic import (
@@ -32,11 +33,13 @@ from wavrail.audio.synthetic import (
 from wavrail.audio.wav import read_wav, write_wav
 
 __all__ = [
+    "apply_gain_db",
     "clipping_detected",
     "crest_factor",
     "downmix_to_mono",
     "from_dbfs",
     "inspect_wav",
+    "normalize_peak",
     "peak_amplitude",
     "read_wav",
     "resample",
