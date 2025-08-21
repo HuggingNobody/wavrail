@@ -153,10 +153,19 @@ def synthesize_formant_stack(
     return np.clip(signal, -1.0, 1.0).astype(np.float32)
 
 
+def synthesize_silence(duration_s: float, sample_rate: int) -> AudioArray:
+    """Generate an all-zero buffer of the requested duration."""
+    _check_positive("duration_s", duration_s)
+    _check_positive("sample_rate", sample_rate)
+    num_samples = round(duration_s * sample_rate)
+    return np.zeros(num_samples, dtype=np.float32)
+
+
 __all__ = [
     "synthesize_chirp",
     "synthesize_formant_stack",
     "synthesize_noise",
     "synthesize_pulse",
+    "synthesize_silence",
     "synthesize_sine",
 ]

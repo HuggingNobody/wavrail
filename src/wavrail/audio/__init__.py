@@ -29,6 +29,7 @@ from wavrail.audio.synthetic import (
     synthesize_formant_stack,
     synthesize_noise,
     synthesize_pulse,
+    synthesize_silence,
     synthesize_sine,
 )
 from wavrail.audio.wav import read_wav, write_wav
@@ -51,6 +52,7 @@ __all__ = [
     "synthesize_formant_stack",
     "synthesize_noise",
     "synthesize_pulse",
+    "synthesize_silence",
     "synthesize_sine",
     "to_dbfs",
     "write_wav",
