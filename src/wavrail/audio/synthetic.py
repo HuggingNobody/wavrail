@@ -161,9 +161,47 @@ def synthesize_silence(duration_s: float, sample_rate: int) -> AudioArray:
     return np.zeros(num_samples, dtype=np.float32)
 
 
+def synthesize_multitone(
+    frequencies_hz: list[float],
+    duration_s: float,
+    sample_rate: int,
+    amplitude: float = 0.5,
+) -> AudioArray:
+    """Sum equal-amplitude sine tones, clipping the mix to ``[-1, 1]``.
+
+    The requested ``amplitude`` is split evenly across the tones so
+    the mix never exceeds it before clipping. Every frequency must
+    sit strictly below the Nyquist limit (``sample_rate / 2``);
+    aliased tones would silently corrupt downstream feature
+    fixtures, so they are rejected up front.
+    """
+    if not frequencies_hz:
+        raise AudioError("frequencies_hz must contain at least one entry")
+    _check_positive("duration_s", duration_s)
+    _check_positive("sample_rate", sample_rate)
+    if not 0.0 <= amplitude <= 1.0:
+        raise AudioError("amplitude must be in [0, 1]")
+    nyquist = sample_rate / 2.0
+    for idx, freq in enumerate(frequencies_hz):
+        if freq <= 0:
+            raise AudioError(f"tone {idx} frequency must be positive")
+        if freq >= nyquist:
+            raise AudioError(
+                f"tone {idx} frequency {freq} Hz must stay below the Nyquist limit {nyquist} Hz"
+            )
+    num_samples = round(duration_s * sample_rate)
+    t = _time_axis(num_samples, sample_rate)
+    per_tone = amplitude / len(frequencies_hz)
+    signal = np.zeros(num_samples, dtype=np.float32)
+    for freq in frequencies_hz:
+        signal += per_tone * np.sin(2.0 * np.pi * freq * t)
+    return np.clip(signal, -1.0, 1.0).astype(np.float32)
+
+
 __all__ = [
     "synthesize_chirp",
     "synthesize_formant_stack",
+    "synthesize_multitone",
     "synthesize_noise",
     "synthesize_pulse",
     "synthesize_silence",

@@ -27,6 +27,7 @@ from wavrail.audio.resample import resample
 from wavrail.audio.synthetic import (
     synthesize_chirp,
     synthesize_formant_stack,
+    synthesize_multitone,
     synthesize_noise,
     synthesize_pulse,
     synthesize_silence,
@@ -50,6 +51,7 @@ __all__ = [
     "silence_ratio",
     "synthesize_chirp",
     "synthesize_formant_stack",
+    "synthesize_multitone",
     "synthesize_noise",
     "synthesize_pulse",
     "synthesize_silence",
