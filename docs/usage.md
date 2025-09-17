@@ -45,19 +45,23 @@ hypothesis = decoder.decode(posteriors)
 ```python
 import wavrail.metrics as metrics
 
-report = metrics.score(reference="hello world",
-                       hypothesis="hello wurld")
-print(report.wer)
+wer = metrics.word_error_rate(reference="hello world", hypothesis="hello wurld")
+cer = metrics.character_error_rate(reference="今天天气好", hypothesis="今天气好")
+ops = metrics.edit_alignment("hello world".split(), "hello wurld".split())
+print(wer, ops.substitutions, ops.insertions, ops.deletions)
 ```
 
 ## Streaming
 
 ```python
-import wavrail.streaming as streaming
+import wavrail.stream as stream
+import wavrail.vocab as vocab
 
-pipe = streaming.Pipeline(...)  # configured elsewhere
-for chunk in audio.chunks(samples, chunk_size=1600):
-    pipe.feed(chunk)
-    while pipe.has_emission():
-        print(pipe.next_emission())
+v = vocab.Vocab.from_labels(["<blank>", "a", "b", "c"])
+pipe = stream.StreamingPipeline(sample_rate=16000, vocab=v)
+for chunk in chunks:  # float32 mono audio, e.g. 100 ms at a time
+    token_ids = pipe.feed_samples(chunk)  # bounded-lookahead emissions
+    print(token_ids)
+hypothesis = pipe.finalize()  # flush the tail after the last chunk
+print(hypothesis.text, pipe.latency_report())
 ```
