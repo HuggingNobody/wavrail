@@ -16,7 +16,12 @@ from wavrail.features.frames import frame_signal, num_frames
 from wavrail.features.logmel import log_mel_spectrogram
 from wavrail.features.mel import hz_to_mel, mel_filterbank, mel_to_hz
 from wavrail.features.preemphasis import pre_emphasize
-from wavrail.features.spectral import spectral_bandwidth, spectral_centroid
+from wavrail.features.spectral import (
+    spectral_bandwidth,
+    spectral_centroid,
+    spectral_flatness,
+    spectral_rolloff,
+)
 from wavrail.features.spectrum import power_spectrum
 from wavrail.features.windows import (
     blackman_window,
@@ -43,4 +48,6 @@ __all__ = [
     "rectangular_window",
     "spectral_bandwidth",
     "spectral_centroid",
+    "spectral_flatness",
+    "spectral_rolloff",
 ]
