@@ -20,6 +20,7 @@ from wavrail.features.spectral import (
     spectral_bandwidth,
     spectral_centroid,
     spectral_flatness,
+    spectral_flux,
     spectral_rolloff,
 )
 from wavrail.features.spectrum import power_spectrum
@@ -49,5 +50,6 @@ __all__ = [
     "spectral_bandwidth",
     "spectral_centroid",
     "spectral_flatness",
+    "spectral_flux",
     "spectral_rolloff",
 ]

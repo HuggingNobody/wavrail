@@ -112,9 +112,31 @@ def spectral_flatness(
     return np.minimum(out, 1.0).astype(np.float32)
 
 
+def spectral_flux(spectra: FeatureArray, half_wave: bool = True) -> FeatureArray:
+    """Return the frame-to-frame spectral change, one value per frame.
+
+    The first frame is compared against silence, so an onset at frame
+    zero still produces a large flux. With ``half_wave=True`` (the
+    default) only energy increases contribute, which is the standard
+    onset-detection behaviour; ``half_wave=False`` sums absolute
+    differences instead. No ``sample_rate`` is needed because flux is
+    defined directly on bin magnitudes.
+    """
+    arr = np.asarray(spectra, dtype=np.float64)
+    if arr.ndim != 2 or arr.shape[1] < 1:
+        raise FeatureError("spectra must be a 2-D array of shape (num_frames, num_bins)")
+    if np.any(arr < 0.0):
+        raise FeatureError("power spectra must be non-negative")
+    previous = np.vstack([np.zeros((1, arr.shape[1])), arr[:-1]])
+    diff = arr - previous
+    diff = np.maximum(diff, 0.0) if half_wave else np.abs(diff)
+    return diff.sum(axis=1).astype(np.float32)
+
+
 __all__ = [
     "spectral_bandwidth",
     "spectral_centroid",
     "spectral_flatness",
+    "spectral_flux",
     "spectral_rolloff",
 ]
