@@ -12,6 +12,7 @@ modules land; see ``__all__`` for the current surface.
 
 from wavrail.features.cmvn import StreamingCmvn, cmvn_normalize
 from wavrail.features.delta import compute_deltas
+from wavrail.features.energy import frame_energy, log_frame_energy
 from wavrail.features.frames import frame_signal, num_frames
 from wavrail.features.logmel import log_mel_spectrogram
 from wavrail.features.mel import hz_to_mel, mel_filterbank, mel_to_hz
@@ -36,10 +37,12 @@ __all__ = [
     "blackman_window",
     "cmvn_normalize",
     "compute_deltas",
+    "frame_energy",
     "frame_signal",
     "hamming_window",
     "hann_window",
     "hz_to_mel",
+    "log_frame_energy",
     "log_mel_spectrogram",
     "mel_filterbank",
     "mel_to_hz",
