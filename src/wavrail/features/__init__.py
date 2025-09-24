@@ -4,7 +4,9 @@ This subpackage builds on the audio primitives exposed by
 :mod:`wavrail.audio`. It provides frame blocking, window functions,
 pre-emphasis, the power spectrum, mel filterbank construction,
 log-mel features, streaming cepstral mean and variance
-normalisation (CMVN), and delta derivatives.
+normalisation (CMVN), delta derivatives, spectral descriptors,
+frame energy, autocorrelation pitch estimates, and an energy-based
+voice-activity detector.
 
 Public entry points are added incrementally as the corresponding
 modules land; see ``__all__`` for the current surface.
@@ -26,6 +28,7 @@ from wavrail.features.spectral import (
     spectral_rolloff,
 )
 from wavrail.features.spectrum import power_spectrum
+from wavrail.features.vad import EnergyVad, detect_voice_activity
 from wavrail.features.windows import (
     blackman_window,
     hamming_window,
@@ -34,11 +37,13 @@ from wavrail.features.windows import (
 )
 
 __all__ = [
+    "EnergyVad",
     "PitchEstimate",
     "StreamingCmvn",
     "blackman_window",
     "cmvn_normalize",
     "compute_deltas",
+    "detect_voice_activity",
     "estimate_pitch_acf",
     "frame_energy",
     "frame_signal",
