@@ -13,6 +13,7 @@ modules land; see ``__all__`` for the current surface.
 """
 
 from wavrail.features.cmvn import StreamingCmvn, cmvn_normalize
+from wavrail.features.dct import dct2_matrix
 from wavrail.features.delta import compute_deltas
 from wavrail.features.energy import frame_energy, log_frame_energy
 from wavrail.features.frames import frame_signal, num_frames
@@ -43,6 +44,7 @@ __all__ = [
     "blackman_window",
     "cmvn_normalize",
     "compute_deltas",
+    "dct2_matrix",
     "detect_voice_activity",
     "estimate_pitch_acf",
     "frame_energy",
