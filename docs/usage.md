@@ -31,6 +31,22 @@ mel_config = MelConfig(sample_rate=16000, num_mels=80, fft_size=512)
 log_mel = ft.log_mel_spectrogram(samples, 16000, frame_config, mel_config)
 ```
 
+## Spectral descriptors and VAD
+
+```python
+import wavrail.features as ft
+
+frames = ft.frame_signal(samples, frame_config)
+spectra = ft.power_spectrum(frames, fft_size=512, window=ft.hann_window(400))
+centroid = ft.spectral_centroid(spectra, 16000)   # Hz, one value per frame
+rolloff = ft.spectral_rolloff(spectra, 16000, percent=0.85)
+flatness = ft.spectral_flatness(spectra, 16000)   # ~1 noise-like, ~0 tonal
+flux = ft.spectral_flux(spectra)                  # onset strength per frame
+
+flags = ft.detect_voice_activity(frames, threshold_db=-40.0, hangover_frames=2)
+pitch = ft.estimate_pitch_acf(frames[0], 16000)   # PitchEstimate(hz, confidence)
+```
+
 ## CTC decoding
 
 ```python
