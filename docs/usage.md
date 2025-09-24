@@ -24,9 +24,11 @@ tone = audio.synthesize_sine(frequency_hz=440.0,
 
 ```python
 import wavrail.features as ft
+from wavrail.types import FrameConfig, MelConfig
 
-config = ft.MelConfig(sample_rate=16000, num_mels=80, fft_size=512)
-log_mel = ft.log_mel_spectrogram(samples, sample_rate=16000, config=config)
+frame_config = FrameConfig(frame_length=400, hop_length=160)
+mel_config = MelConfig(sample_rate=16000, num_mels=80, fft_size=512)
+log_mel = ft.log_mel_spectrogram(samples, 16000, frame_config, mel_config)
 ```
 
 ## CTC decoding
