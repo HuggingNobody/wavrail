@@ -14,6 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from wavrail.errors import FeatureError
+from wavrail.types import FeatureArray
 
 
 def dct2_matrix(num_coeffs: int, num_inputs: int) -> np.ndarray:
@@ -34,4 +35,24 @@ def dct2_matrix(num_coeffs: int, num_inputs: int) -> np.ndarray:
     return matrix * scale
 
 
-__all__ = ["dct2_matrix"]
+def apply_dct(features: FeatureArray, num_coeffs: int) -> FeatureArray:
+    """Project every row of ``features`` onto the first DCT-II basis rows.
+
+    Consumes a 2-D array of shape ``(num_frames, num_inputs)`` and
+    returns ``(num_frames, num_coeffs)`` as ``float32``. Requesting
+    more coefficients than inputs is rejected: the DCT-II basis only
+    spans ``num_inputs`` dimensions, so extra rows would be redundant
+    or misleading.
+    """
+    arr = np.asarray(features, dtype=np.float64)
+    if arr.ndim != 2:
+        raise FeatureError("features must be a 2-D array of shape (num_frames, num_inputs)")
+    if num_coeffs > arr.shape[1]:
+        raise FeatureError(
+            f"num_coeffs ({num_coeffs}) exceeds the number of inputs ({arr.shape[1]})"
+        )
+    matrix = dct2_matrix(num_coeffs, arr.shape[1])
+    return (arr @ matrix.T).astype(np.float32)
+
+
+__all__ = ["apply_dct", "dct2_matrix"]
