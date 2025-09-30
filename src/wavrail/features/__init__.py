@@ -17,6 +17,7 @@ from wavrail.features.dct import apply_dct, dct2_matrix
 from wavrail.features.delta import compute_deltas
 from wavrail.features.energy import frame_energy, log_frame_energy
 from wavrail.features.frames import frame_signal, num_frames
+from wavrail.features.lifter import apply_lifter, cepstral_lifter
 from wavrail.features.logmel import log_mel_spectrogram
 from wavrail.features.mel import hz_to_mel, mel_filterbank, mel_to_hz
 from wavrail.features.pitch import PitchEstimate, estimate_pitch_acf
@@ -42,7 +43,9 @@ __all__ = [
     "PitchEstimate",
     "StreamingCmvn",
     "apply_dct",
+    "apply_lifter",
     "blackman_window",
+    "cepstral_lifter",
     "cmvn_normalize",
     "compute_deltas",
     "dct2_matrix",
