@@ -40,4 +40,22 @@ def log_frame_energy(frames: FeatureArray, floor: float = 1e-10) -> FeatureArray
     return np.log(np.maximum(energy, floor)).astype(np.float32)
 
 
-__all__ = ["frame_energy", "log_frame_energy"]
+def zero_crossing_rate(frames: FeatureArray) -> FeatureArray:
+    """Return the sign-change rate of every frame, in ``[0, 1]``.
+
+    A crossing is counted whenever consecutive samples flip sign bit
+    (``np.signbit``), so an exact zero is treated as positive. The
+    count is divided by ``frame_length - 1``; frames shorter than two
+    samples are rejected because the rate is undefined there.
+    High rates indicate noise-like or unvoiced frames, low rates
+    indicate voiced or tonal frames.
+    """
+    arr = _validate_frames(frames)
+    if arr.shape[1] < 2:
+        raise FeatureError("frames must contain at least two samples")
+    signs = np.signbit(arr.astype(np.float32))
+    crossings = np.count_nonzero(signs[:, 1:] != signs[:, :-1], axis=1)
+    return (crossings / (arr.shape[1] - 1)).astype(np.float32)
+
+
+__all__ = ["frame_energy", "log_frame_energy", "zero_crossing_rate"]

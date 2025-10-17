@@ -5,8 +5,9 @@ This subpackage builds on the audio primitives exposed by
 pre-emphasis, the power spectrum, mel filterbank construction,
 log-mel features, streaming cepstral mean and variance
 normalisation (CMVN), delta derivatives, spectral descriptors,
-frame energy, autocorrelation pitch estimates, and an energy-based
-voice-activity detector.
+frame energy, autocorrelation pitch estimates, an energy-based
+voice-activity detector, MFCCs with cepstral liftering, and the
+zero-crossing rate.
 
 Public entry points are added incrementally as the corresponding
 modules land; see ``__all__`` for the current surface.
@@ -15,7 +16,11 @@ modules land; see ``__all__`` for the current surface.
 from wavrail.features.cmvn import StreamingCmvn, cmvn_normalize
 from wavrail.features.dct import apply_dct, dct2_matrix
 from wavrail.features.delta import compute_deltas
-from wavrail.features.energy import frame_energy, log_frame_energy
+from wavrail.features.energy import (
+    frame_energy,
+    log_frame_energy,
+    zero_crossing_rate,
+)
 from wavrail.features.frames import frame_signal, num_frames
 from wavrail.features.lifter import apply_lifter, cepstral_lifter
 from wavrail.features.logmel import log_mel_spectrogram
@@ -72,4 +77,5 @@ __all__ = [
     "spectral_flatness",
     "spectral_flux",
     "spectral_rolloff",
+    "zero_crossing_rate",
 ]
