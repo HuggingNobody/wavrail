@@ -20,7 +20,7 @@ from wavrail.features.frames import frame_signal, num_frames
 from wavrail.features.lifter import apply_lifter, cepstral_lifter
 from wavrail.features.logmel import log_mel_spectrogram
 from wavrail.features.mel import hz_to_mel, mel_filterbank, mel_to_hz
-from wavrail.features.mfcc import mfcc_from_logmel
+from wavrail.features.mfcc import mfcc, mfcc_from_logmel
 from wavrail.features.pitch import PitchEstimate, estimate_pitch_acf
 from wavrail.features.preemphasis import pre_emphasize
 from wavrail.features.spectral import (
@@ -61,6 +61,7 @@ __all__ = [
     "log_mel_spectrogram",
     "mel_filterbank",
     "mel_to_hz",
+    "mfcc",
     "mfcc_from_logmel",
     "num_frames",
     "power_spectrum",
