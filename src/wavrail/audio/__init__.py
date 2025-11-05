@@ -33,6 +33,7 @@ from wavrail.audio.synthetic import (
     synthesize_silence,
     synthesize_sine,
 )
+from wavrail.audio.trim import trim_silence
 from wavrail.audio.wav import read_wav, write_wav
 
 __all__ = [
@@ -57,5 +58,6 @@ __all__ = [
     "synthesize_silence",
     "synthesize_sine",
     "to_dbfs",
+    "trim_silence",
     "write_wav",
 ]
