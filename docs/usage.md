@@ -47,6 +47,17 @@ flags = ft.detect_voice_activity(frames, threshold_db=-40.0, hangover_frames=2)
 pitch = ft.estimate_pitch_acf(frames[0], 16000)   # PitchEstimate(hz, confidence)
 ```
 
+## MFCC and cepstral features
+
+```python
+import wavrail.features as ft
+
+coeffs = ft.mfcc(samples, 16000, frame_config, mel_config, num_coeffs=13)
+staged = ft.mfcc_from_logmel(log_mel, num_coeffs=13, lifter=22)
+weights = ft.cepstral_lifter(13, lifter=22)  # HTK-style lifter curve
+zcr = ft.zero_crossing_rate(ft.frame_signal(samples, frame_config))
+```
+
 ## CTC decoding
 
 ```python
