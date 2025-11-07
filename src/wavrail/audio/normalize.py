@@ -49,4 +49,30 @@ def normalize_peak(samples: AudioArray, target_dbfs: float = 0.0) -> AudioArray:
     return apply_gain_db(samples, gain_db)
 
 
-__all__ = ["apply_gain_db", "normalize_peak"]
+def dc_offset(samples: AudioArray) -> float:
+    """Return the mean value (DC component) of ``samples``."""
+    arr = np.asarray(samples, dtype=np.float32)
+    if arr.ndim != 1:
+        raise AudioError("samples must be a 1-D array")
+    if arr.size == 0:
+        raise AudioError("dc_offset requires at least one sample")
+    return float(np.mean(arr.astype(np.float64)))
+
+
+def remove_dc_offset(samples: AudioArray) -> AudioArray:
+    """Return ``samples`` with the mean subtracted, centring it on zero.
+
+    ADCs and bad recordings can leave a constant bias on a signal;
+    the bias inflates frame energy and shows up as a spike in the
+    lowest FFT bin. Subtracting the mean is the standard remedy and
+    is exactly invertible only up to the removed constant.
+    """
+    arr = np.asarray(samples, dtype=np.float32)
+    if arr.ndim != 1:
+        raise AudioError("samples must be a 1-D array")
+    if arr.size == 0:
+        raise AudioError("remove_dc_offset requires at least one sample")
+    return (arr.astype(np.float64) - dc_offset(arr)).astype(np.float32)
+
+
+__all__ = ["apply_gain_db", "dc_offset", "normalize_peak", "remove_dc_offset"]
