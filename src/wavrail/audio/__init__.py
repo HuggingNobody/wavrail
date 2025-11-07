@@ -11,6 +11,7 @@ documents the planned surface; check ``__all__`` for what is actually
 exported by a given release.
 """
 
+from wavrail.audio.concat import concatenate
 from wavrail.audio.downmix import downmix_to_mono
 from wavrail.audio.energy import (
     crest_factor,
@@ -45,6 +46,7 @@ __all__ = [
     "apply_fade",
     "apply_gain_db",
     "clipping_detected",
+    "concatenate",
     "crest_factor",
     "dc_offset",
     "downmix_to_mono",
