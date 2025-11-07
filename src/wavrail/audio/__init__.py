@@ -29,6 +29,7 @@ from wavrail.audio.normalize import (
     remove_dc_offset,
 )
 from wavrail.audio.quality import clipping_detected, silence_ratio
+from wavrail.audio.regions import detect_silence_regions
 from wavrail.audio.resample import resample
 from wavrail.audio.synthetic import (
     synthesize_chirp,
@@ -49,6 +50,7 @@ __all__ = [
     "concatenate",
     "crest_factor",
     "dc_offset",
+    "detect_silence_regions",
     "downmix_to_mono",
     "from_dbfs",
     "inspect_wav",
