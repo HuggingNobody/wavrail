@@ -32,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"wavrail {__version__}")
     sub = parser.add_subparsers(dest="command")
     _add_inspect(sub)
+    _add_synth(sub)
     _add_features(sub)
     _add_decode(sub)
     _add_align(sub)
@@ -165,6 +166,67 @@ def _run_inspect(args: argparse.Namespace) -> None:
         "num_samples": info.num_samples,
     }
     print(json.dumps(payload, indent=2))
+
+
+def _add_synth(sub: argparse._SubParsersAction) -> None:
+    parser = sub.add_parser("synth", help="Write a synthetic waveform to a WAV file.")
+    parser.add_argument(
+        "kind",
+        choices=["sine", "chirp", "pulse", "noise", "silence"],
+        help="waveform generator to use",
+    )
+    parser.add_argument("output", help="destination WAV path")
+    parser.add_argument("--duration", type=float, default=1.0, help="duration in seconds")
+    parser.add_argument("--sample-rate", type=int, default=16000, help="output sample rate")
+    parser.add_argument("--freq", type=float, default=440.0, help="sine frequency / chirp start")
+    parser.add_argument("--end-freq", type=float, default=880.0, help="chirp end frequency")
+    parser.add_argument("--amplitude", type=float, default=0.5, help="peak amplitude in [0, 1]")
+    parser.add_argument("--seed", type=int, default=0, help="noise generator seed")
+    parser.add_argument(
+        "--encoding",
+        choices=["pcm16", "pcm32", "float32"],
+        default="pcm16",
+        help="WAV encoding (default pcm16)",
+    )
+
+
+def _run_synth(args: argparse.Namespace) -> None:
+    from wavrail.audio import (
+        synthesize_chirp,
+        synthesize_noise,
+        synthesize_pulse,
+        synthesize_silence,
+        synthesize_sine,
+        write_wav,
+    )
+
+    if args.kind == "sine":
+        samples = synthesize_sine(
+            args.freq, args.duration, args.sample_rate, amplitude=args.amplitude
+        )
+    elif args.kind == "chirp":
+        samples = synthesize_chirp(
+            args.freq, args.end_freq, args.duration, args.sample_rate, amplitude=args.amplitude
+        )
+    elif args.kind == "pulse":
+        # the pulse fills the first half of the requested duration
+        samples = synthesize_pulse(
+            0.0, args.duration / 2.0, args.duration, args.sample_rate, amplitude=args.amplitude
+        )
+    elif args.kind == "noise":
+        samples = synthesize_noise(
+            args.duration, args.sample_rate, seed=args.seed, amplitude=args.amplitude
+        )
+    else:
+        samples = synthesize_silence(args.duration, args.sample_rate)
+    write_wav(args.output, samples, args.sample_rate, encoding=args.encoding)
+    payload = {
+        "kind": args.kind,
+        "path": str(args.output),
+        "num_samples": int(samples.size),
+        "encoding": args.encoding,
+    }
+    print(json.dumps(payload))
 
 
 def _run_features(args: argparse.Namespace) -> None:
@@ -366,6 +428,7 @@ def _run_demo(args: argparse.Namespace) -> None:
 
 _DISPATCH = {
     "inspect": _run_inspect,
+    "synth": _run_synth,
     "features": _run_features,
     "decode": _run_decode,
     "align": _run_align,
