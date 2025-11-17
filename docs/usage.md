@@ -20,6 +20,17 @@ tone = audio.synthesize_sine(frequency_hz=440.0,
                              sample_rate=16000)
 ```
 
+## Editing audio
+
+```python
+import wavrail.audio as audio
+
+trimmed = audio.trim_silence(samples, threshold_db=-60.0)
+centred = audio.remove_dc_offset(samples)
+joined = audio.concatenate([intro, speech], crossfade_samples=160)
+regions = audio.detect_silence_regions(samples, min_region_samples=160)
+```
+
 ## Feature extraction
 
 ```python
