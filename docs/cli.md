@@ -12,6 +12,17 @@ Print audio metadata without decoding the sample buffer.
 wavrail inspect sample.wav
 ```
 
+## synth
+
+Write a deterministic synthetic waveform to a WAV file — offline
+fixtures for tests and demos. `pulse` fills the first half of the
+requested duration; `noise` honours `--seed`.
+
+```bash
+wavrail synth sine tone.wav --duration 1.0 --freq 440
+wavrail synth noise noise.wav --seed 7 --encoding float32
+```
+
 ## features
 
 Extract log-mel features to stdout as a `.npy` file or a JSON array.
