@@ -7,7 +7,20 @@ trained checkpoints can be reloaded without rebuilding the
 mapping from the underlying labels file.
 """
 
-from wavrail.vocab.persist import VOCAB_SCHEMA_VERSION, load_vocab_json, save_vocab_json
+from wavrail.vocab.persist import (
+    VOCAB_SCHEMA_VERSION,
+    load_vocab_json,
+    load_vocab_tokens,
+    save_vocab_json,
+    save_vocab_tokens,
+)
 from wavrail.vocab.vocab import Vocab
 
-__all__ = ["VOCAB_SCHEMA_VERSION", "Vocab", "load_vocab_json", "save_vocab_json"]
+__all__ = [
+    "VOCAB_SCHEMA_VERSION",
+    "Vocab",
+    "load_vocab_json",
+    "load_vocab_tokens",
+    "save_vocab_json",
+    "save_vocab_tokens",
+]

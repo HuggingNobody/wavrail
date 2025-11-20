@@ -51,4 +51,33 @@ def load_vocab_json(path: str | Path) -> Vocab:
     return Vocab.from_dict(payload)
 
 
-__all__ = ["VOCAB_SCHEMA_VERSION", "load_vocab_json", "save_vocab_json"]
+def save_vocab_tokens(vocab: Vocab, path: str | Path) -> None:
+    """Write ``vocab`` as one label per line (index = line number)."""
+    for label in vocab.labels:
+        if "\n" in label or "\r" in label:
+            raise VocabularyError(
+                f"label {label!r} contains a newline; use the JSON format instead"
+            )
+    Path(path).write_text("".join(f"{label}\n" for label in vocab.labels), encoding="utf-8")
+
+
+def load_vocab_tokens(
+    path: str | Path,
+    blank_index: int = 0,
+    name: str = "vocab",
+) -> Vocab:
+    """Read a line-format tokens file into a :class:`Vocab`."""
+    text = Path(path).read_text(encoding="utf-8")
+    lines = text.splitlines()
+    if not lines:
+        raise VocabularyError(f"{path} contains no tokens")
+    return Vocab(labels=tuple(lines), blank_index=blank_index, name=name)
+
+
+__all__ = [
+    "VOCAB_SCHEMA_VERSION",
+    "load_vocab_json",
+    "load_vocab_tokens",
+    "save_vocab_json",
+    "save_vocab_tokens",
+]
