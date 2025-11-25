@@ -38,6 +38,33 @@ class Vocab:
     ) -> Vocab:
         return cls(labels=tuple(labels), blank_index=blank_index, name=name)
 
+    @classmethod
+    def from_text(
+        cls,
+        text: str,
+        blank_token: str = "<blank>",
+        name: str = "vocab",
+    ) -> Vocab:
+        """Build a character-level vocab from ``text`` in first-seen order.
+
+        The blank token always occupies index 0. Remaining labels are
+        single characters appended in order of first appearance, which
+        keeps the layout deterministic for a given corpus. Whitespace
+        and punctuation count as ordinary characters; callers who want
+        them excluded should normalise the text first. Text that adds
+        no character beyond the blank token is rejected because the
+        resulting blank-only vocab could not decode anything.
+        """
+        labels = [blank_token]
+        seen = {blank_token}
+        for char in text:
+            if char not in seen:
+                seen.add(char)
+                labels.append(char)
+        if len(labels) == 1:
+            raise VocabularyError("from_text found no characters beyond the blank token")
+        return cls(labels=tuple(labels), blank_index=0, name=name)
+
     @property
     def size(self) -> int:
         return len(self.labels)
