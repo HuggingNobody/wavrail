@@ -14,12 +14,13 @@ identical and downstream log handling is explicit.
 from wavrail.ctc._common import Hypothesis, collapse_blanks
 from wavrail.ctc.beam import PrefixBeamSearch
 from wavrail.ctc.greedy import greedy_decode
-from wavrail.ctc.posteriors import frame_entropy, validate_posteriors
+from wavrail.ctc.posteriors import frame_confidence, frame_entropy, validate_posteriors
 
 __all__ = [
     "Hypothesis",
     "PrefixBeamSearch",
     "collapse_blanks",
+    "frame_confidence",
     "frame_entropy",
     "greedy_decode",
     "validate_posteriors",

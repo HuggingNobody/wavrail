@@ -52,4 +52,15 @@ def frame_entropy(posteriors: np.ndarray) -> np.ndarray:
     return np.clip(entropy, 0.0, 1.0).astype(np.float32)
 
 
-__all__ = ["frame_entropy", "validate_posteriors"]
+def frame_confidence(posteriors: np.ndarray) -> np.ndarray:
+    """Return the max probability of each frame as ``float32``.
+
+    This is the confidence a greedy decoding step would carry at that
+    frame: the posterior of the argmax label. Like entropy, it scores
+    decoder certainty, not correctness.
+    """
+    arr = validate_posteriors(posteriors)
+    return arr.max(axis=1).astype(np.float32)
+
+
+__all__ = ["frame_confidence", "frame_entropy", "validate_posteriors"]
