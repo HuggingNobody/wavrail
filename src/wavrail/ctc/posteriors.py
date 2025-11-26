@@ -63,4 +63,28 @@ def frame_confidence(posteriors: np.ndarray) -> np.ndarray:
     return arr.max(axis=1).astype(np.float32)
 
 
-__all__ = ["frame_confidence", "frame_entropy", "validate_posteriors"]
+def rescale_temperature(log_posteriors: np.ndarray, temperature: float) -> np.ndarray:
+    """Rescale log posteriors by ``temperature`` and renormalise.
+
+    Implements the standard temperature transform
+    ``log_softmax(log_posteriors / T)`` row by row. ``T = 1`` returns
+    the renormalised input, ``T < 1`` sharpens rows toward their
+    argmax, and large ``T`` flattens rows toward uniform. The argmax
+    of each row is preserved for every positive ``T``. The result is
+    ``float32`` log-probabilities whose rows exp-sum to 1.
+    """
+    if not np.isfinite(temperature) or temperature <= 0.0:
+        raise DecodingError("temperature must be positive and finite")
+    arr = _as_2d(log_posteriors, name="log_posteriors")
+    scaled = arr / temperature
+    shifted = scaled - scaled.max(axis=1, keepdims=True)
+    log_norm = shifted - np.log(np.exp(shifted).sum(axis=1, keepdims=True))
+    return log_norm.astype(np.float32)
+
+
+__all__ = [
+    "frame_confidence",
+    "frame_entropy",
+    "rescale_temperature",
+    "validate_posteriors",
+]
