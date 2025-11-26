@@ -80,6 +80,20 @@ decoder = ctc.PrefixBeamSearch(vocab=v, beam=4)
 hypothesis = decoder.decode(posteriors)
 ```
 
+## Vocab persistence and posterior tools
+
+```python
+from wavrail.vocab import Vocab, load_vocab_json, save_vocab_json
+
+v = Vocab.from_text("你好世界")  # character-level, blank at index 0
+save_vocab_json(v, "vocab.json")  # versioned JSON format
+same = load_vocab_json("vocab.json")
+
+entropy = ctc.frame_entropy(posteriors)  # normalised to [0, 1] per frame
+confidence = ctc.frame_confidence(posteriors)  # greedy-step certainty
+sharper = ctc.rescale_temperature(log_posteriors, temperature=0.7)
+```
+
 ## Metrics
 
 ```python
