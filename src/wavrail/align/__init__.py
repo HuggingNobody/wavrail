@@ -16,6 +16,18 @@ from wavrail.align.forced import (
     Alignment,
     align_ctc,
 )
-from wavrail.align.summary import TokenTiming, detect_pauses, token_timings
+from wavrail.align.summary import (
+    TokenTiming,
+    detect_pauses,
+    summarize_alignment,
+    token_timings,
+)
 
-__all__ = ["Alignment", "TokenTiming", "align_ctc", "detect_pauses", "token_timings"]
+__all__ = [
+    "Alignment",
+    "TokenTiming",
+    "align_ctc",
+    "detect_pauses",
+    "summarize_alignment",
+    "token_timings",
+]

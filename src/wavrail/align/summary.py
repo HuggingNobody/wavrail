@@ -98,4 +98,36 @@ def detect_pauses(
     return pauses
 
 
-__all__ = ["TokenTiming", "detect_pauses", "token_timings"]
+def summarize_alignment(
+    alignment: Alignment,
+    frame_shift_s: float,
+    min_pause_s: float = 0.1,
+) -> dict[str, object]:
+    """Return a JSON-ready summary of ``alignment``.
+
+    The key set is a stable contract: ``num_tokens``,
+    ``total_frames``, ``duration_s``, ``mean_confidence``,
+    ``min_confidence``, ``num_pauses``, and ``pauses_s``. Empty
+    alignments are rejected because duration and confidence
+    statistics are undefined for them.
+    """
+    if not alignment.tokens:
+        raise AlignmentError("cannot summarize an empty alignment")
+    _check_shift(frame_shift_s)
+    pauses = detect_pauses(alignment, frame_shift_s, min_pause_s)
+    confidences = list(alignment.confidences)
+    starts = [start for start, _ in alignment.frame_spans]
+    ends = [end for _, end in alignment.frame_spans]
+    total_frames = max(ends) - min(starts)
+    return {
+        "num_tokens": len(alignment.tokens),
+        "total_frames": int(total_frames),
+        "duration_s": total_frames * frame_shift_s,
+        "mean_confidence": float(sum(confidences) / len(confidences)),
+        "min_confidence": float(min(confidences)),
+        "num_pauses": len(pauses),
+        "pauses_s": [[round(start, 6), round(end, 6)] for start, end in pauses],
+    }
+
+
+__all__ = ["TokenTiming", "detect_pauses", "summarize_alignment", "token_timings"]
