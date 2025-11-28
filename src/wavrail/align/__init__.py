@@ -16,5 +16,6 @@ from wavrail.align.forced import (
     Alignment,
     align_ctc,
 )
+from wavrail.align.summary import TokenTiming, token_timings
 
-__all__ = ["Alignment", "align_ctc"]
+__all__ = ["Alignment", "TokenTiming", "align_ctc", "token_timings"]
