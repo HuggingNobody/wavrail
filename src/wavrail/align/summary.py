@@ -9,6 +9,7 @@ and CLIs can render them without touching the alignment internals.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 
 from wavrail.align.forced import Alignment
 from wavrail.errors import AlignmentError
@@ -71,4 +72,30 @@ def token_timings(alignment: Alignment, frame_shift_s: float) -> list[TokenTimin
     return timings
 
 
-__all__ = ["TokenTiming", "token_timings"]
+def detect_pauses(
+    alignment: Alignment,
+    frame_shift_s: float,
+    min_pause_s: float = 0.1,
+) -> list[tuple[float, float]]:
+    """Return ``(start_s, end_s)`` gaps of at least ``min_pause_s``.
+
+    A pause is the gap between the end of one token span and the
+    start of the next; touching or overlapping spans produce no gap.
+    Gaps shorter than ``min_pause_s`` are filtered out, which is how
+    callers distinguish deliberate pauses from ordinary coarticulation.
+    """
+    _check_shift(frame_shift_s)
+    if min_pause_s < 0.0:
+        raise AlignmentError("min_pause_s must be non-negative")
+    pauses: list[tuple[float, float]] = []
+    for (_, previous_end), (next_start, _) in pairwise(alignment.frame_spans):
+        gap_frames = next_start - previous_end
+        if gap_frames <= 0:
+            continue
+        gap_s = gap_frames * frame_shift_s
+        if gap_s >= min_pause_s:
+            pauses.append((previous_end * frame_shift_s, next_start * frame_shift_s))
+    return pauses
+
+
+__all__ = ["TokenTiming", "detect_pauses", "token_timings"]
