@@ -14,7 +14,12 @@ Edit-alignment output is available via
 
 from wavrail.metrics.cer import character_error_rate
 from wavrail.metrics.confusion import ConfusionReport, confusion_report, top_substitutions
-from wavrail.metrics.corpus import CorpusScore, UtteranceScore, aggregate_score
+from wavrail.metrics.corpus import (
+    CorpusScore,
+    RateSummary,
+    UtteranceScore,
+    aggregate_score,
+)
 from wavrail.metrics.edit import EditOps, edit_alignment
 from wavrail.metrics.normalization import (
     TextNormalizer,
@@ -28,6 +33,7 @@ __all__ = [
     "ConfusionReport",
     "CorpusScore",
     "EditOps",
+    "RateSummary",
     "TextNormalizer",
     "UtteranceScore",
     "aggregate_score",

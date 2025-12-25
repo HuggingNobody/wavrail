@@ -10,7 +10,19 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from wavrail.errors import MetricError
 from wavrail.metrics.edit import EditOps, edit_alignment
+
+
+@dataclass(frozen=True)
+class RateSummary:
+    """Distribution statistics over per-utterance error rates."""
+
+    count: int
+    min_rate: float
+    max_rate: float
+    mean_rate: float
+    median_rate: float
 
 
 @dataclass
@@ -98,6 +110,27 @@ class CorpusScore:
                 continue
             rates.append(u.ops.errors / u.ops.length)
         return rates
+
+    def rate_summary(self) -> RateSummary:
+        """Return count/min/max/mean/median of the per-utterance rates.
+
+        Utterances with empty references are skipped exactly like in
+        :meth:`per_utterance_rates`; a corpus with no rateable
+        utterances is rejected because the statistics are undefined.
+        """
+        rates = sorted(self.per_utterance_rates())
+        if not rates:
+            raise MetricError("cannot summarize rates of an empty corpus")
+        count = len(rates)
+        middle = count // 2
+        median = rates[middle] if count % 2 else (rates[middle - 1] + rates[middle]) / 2.0
+        return RateSummary(
+            count=count,
+            min_rate=rates[0],
+            max_rate=rates[-1],
+            mean_rate=sum(rates) / count,
+            median_rate=median,
+        )
 
     def as_report(self, title: str = "score") -> dict[str, object]:
         return {
