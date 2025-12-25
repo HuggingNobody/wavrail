@@ -14,6 +14,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
+from wavrail.errors import MetricError
 from wavrail.metrics.edit import EditOps, OpType
 
 
@@ -72,6 +73,13 @@ class ConfusionReport:
             "insertions": dict(sorted(self.insertions.items())),
             "deletions": dict(sorted(self.deletions.items())),
         }
+
+
+def top_substitutions(report: ConfusionReport, k: int = 10) -> list[tuple[tuple[str, str], int]]:
+    """Return the ``k`` most frequent substitution pairs, most common first."""
+    if k < 1:
+        raise MetricError("k must be positive")
+    return report.substitutions.most_common(k)
 
 
 def confusion_report(ops: EditOps) -> ConfusionReport:
