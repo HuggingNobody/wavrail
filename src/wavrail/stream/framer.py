@@ -79,7 +79,7 @@ class StreamingFramer:
         count = (available - cfg.frame_length) // cfg.hop_length + 1
         indices = np.arange(cfg.frame_length)[None, :] + cfg.hop_length * np.arange(count)[:, None]
         frames = self._pending[indices].astype(np.float32)
-        consumed = (count - 1) * cfg.hop_length + cfg.frame_length
+        consumed = count * cfg.hop_length
         self._pending = self._pending[consumed:]
         self._total_frames += count
         return frames
