@@ -12,6 +12,7 @@ by the audio duration that was processed.
 """
 
 from wavrail.stream.buffer import RingBuffer
+from wavrail.stream.framer import StreamingFramer
 from wavrail.stream.pipeline import (
     LatencyReport,
     StreamingPipeline,
@@ -24,6 +25,7 @@ from wavrail.stream.pipeline import (
 __all__ = [
     "LatencyReport",
     "RingBuffer",
+    "StreamingFramer",
     "StreamingPipeline",
     "StreamingPipelineState",
     "deserialize_pipeline_state",
