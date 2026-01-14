@@ -94,6 +94,25 @@ confidence = ctc.frame_confidence(posteriors)  # greedy-step certainty
 sharper = ctc.rescale_temperature(log_posteriors, temperature=0.7)
 ```
 
+## Alignment summaries
+
+```python
+from wavrail.align import detect_pauses, summarize_alignment, token_timings
+
+timings = token_timings(alignment, frame_shift_s=0.01)  # seconds per token
+pauses = detect_pauses(alignment, frame_shift_s=0.01, min_pause_s=0.15)
+summary = summarize_alignment(alignment, frame_shift_s=0.01)  # JSON-ready
+```
+
+## Confusion counts
+
+```python
+from wavrail.metrics import confusion_report, edit_alignment, top_substitutions
+
+report = confusion_report(edit_alignment(list("参考文本"), list("参靠文本")))
+print(top_substitutions(report, k=5))  # [(('考', '靠'), 1)]
+```
+
 ## Metrics
 
 ```python
