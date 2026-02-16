@@ -90,6 +90,27 @@ class StreamingFramer:
         self._total_frames += 1
         return frame.reshape(1, -1)
 
+    @property
+    def lookahead_samples(self) -> int:
+        """Overlap retained between consecutive emitted frames."""
+        return self._config.frame_length - self._config.hop_length
+
+    @property
+    def max_buffered_samples(self) -> int:
+        """Upper bound on pending samples after any completed push."""
+        return self._config.frame_length - 1
+
+    def emission_latency_ms(self, sample_rate: int) -> float:
+        """Milliseconds between a frame's start and its emission.
+
+        A frame covering ``[start, start + frame_length)`` can only be
+        emitted once its last sample has arrived, so the algorithmic
+        emission latency is exactly one frame length.
+        """
+        if sample_rate <= 0:
+            raise PipelineError("sample_rate must be positive")
+        return self._config.frame_length / sample_rate * 1000.0
+
     def _drain(self) -> FeatureArray:
         cfg = self._config
         available = self._pending.size
