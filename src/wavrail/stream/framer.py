@@ -71,6 +71,25 @@ class StreamingFramer:
             self._total_in += arr.size
         return self._drain()
 
+    def flush(self, pad_tail: bool = False) -> FeatureArray:
+        """Release the tail under the chosen policy and clear pending.
+
+        ``pad_tail=False`` (the default) drops the remaining
+        sub-frame samples, which is what :func:`frame_signal` does.
+        ``pad_tail=True`` emits one final frame zero-padded to
+        ``frame_length`` when at least one sample is pending, so no
+        audio is silently discarded at end of stream.
+        """
+        cfg = self._config
+        tail = self._pending
+        self._pending = np.zeros(0, dtype=np.float32)
+        if not pad_tail or tail.size == 0:
+            return np.zeros((0, cfg.frame_length), dtype=np.float32)
+        frame = np.zeros(cfg.frame_length, dtype=np.float32)
+        frame[: tail.size] = tail
+        self._total_frames += 1
+        return frame.reshape(1, -1)
+
     def _drain(self) -> FeatureArray:
         cfg = self._config
         available = self._pending.size
