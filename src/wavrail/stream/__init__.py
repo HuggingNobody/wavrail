@@ -13,6 +13,7 @@ by the audio duration that was processed.
 
 from wavrail.stream.buffer import RingBuffer
 from wavrail.stream.framer import (
+    FRAMER_STATE_VERSION,
     StreamingFramer,
     deserialize_framer_state,
     serialize_framer_state,
