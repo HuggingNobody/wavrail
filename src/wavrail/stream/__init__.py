@@ -21,6 +21,7 @@ from wavrail.stream.pipeline import (
     measure_rtf,
     serialize_pipeline_state,
 )
+from wavrail.stream.spectrogram import StreamingSpectrogram
 
 __all__ = [
     "LatencyReport",
@@ -28,6 +29,7 @@ __all__ = [
     "StreamingFramer",
     "StreamingPipeline",
     "StreamingPipelineState",
+    "StreamingSpectrogram",
     "deserialize_pipeline_state",
     "measure_rtf",
     "serialize_pipeline_state",
