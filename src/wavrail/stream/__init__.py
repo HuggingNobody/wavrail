@@ -12,7 +12,11 @@ by the audio duration that was processed.
 """
 
 from wavrail.stream.buffer import RingBuffer
-from wavrail.stream.framer import StreamingFramer
+from wavrail.stream.framer import (
+    StreamingFramer,
+    deserialize_framer_state,
+    serialize_framer_state,
+)
 from wavrail.stream.pipeline import (
     LatencyReport,
     StreamingPipeline,
@@ -24,13 +28,16 @@ from wavrail.stream.pipeline import (
 from wavrail.stream.spectrogram import StreamingSpectrogram
 
 __all__ = [
+    "FRAMER_STATE_VERSION",
     "LatencyReport",
     "RingBuffer",
     "StreamingFramer",
     "StreamingPipeline",
     "StreamingPipelineState",
     "StreamingSpectrogram",
+    "deserialize_framer_state",
     "deserialize_pipeline_state",
     "measure_rtf",
+    "serialize_framer_state",
     "serialize_pipeline_state",
 ]

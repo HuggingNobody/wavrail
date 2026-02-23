@@ -19,6 +19,8 @@ import numpy as np
 from wavrail.errors import PipelineError
 from wavrail.types import AudioArray, FeatureArray, FrameConfig
 
+FRAMER_STATE_VERSION = 1
+
 
 class StreamingFramer:
     """Accumulate samples and emit complete overlapping frames.
@@ -57,6 +59,26 @@ class StreamingFramer:
     def total_frames_emitted(self) -> int:
         """Total frames emitted over the framer's lifetime."""
         return self._total_frames
+
+    def pending_array(self) -> np.ndarray:
+        """Return a copy of the pending sample buffer."""
+        return self._pending.copy()
+
+    def restore(
+        self,
+        pending: np.ndarray,
+        total_input_samples: int,
+        total_frames_emitted: int,
+    ) -> None:
+        """Reinstall serialised state; used by :func:`deserialize_framer_state`."""
+        arr = np.asarray(pending, dtype=np.float32).reshape(-1)
+        if arr.size >= self._config.frame_length:
+            raise PipelineError("pending buffer must be shorter than frame_length")
+        if total_input_samples < arr.size or total_frames_emitted < 0:
+            raise PipelineError("inconsistent framer counters")
+        self._pending = arr
+        self._total_in = int(total_input_samples)
+        self._total_frames = int(total_frames_emitted)
 
     def push(self, samples: AudioArray) -> FeatureArray:
         """Feed one chunk; return the newly completed frames.
@@ -125,4 +147,51 @@ class StreamingFramer:
         return frames
 
 
-__all__ = ["StreamingFramer"]
+def serialize_framer_state(framer: StreamingFramer) -> dict[str, object]:
+    """Return a JSON-ready snapshot of ``framer``.
+
+    The payload carries the schema version, the full frame config,
+    the lifetime counters, and the pending buffer so a paused stream
+    can resume elsewhere with bit-identical framing.
+    """
+    cfg = framer.config
+    return {
+        "schema_version": FRAMER_STATE_VERSION,
+        "frame_length": cfg.frame_length,
+        "hop_length": cfg.hop_length,
+        "pad_mode": cfg.pad_mode,
+        "center": cfg.center,
+        "total_input_samples": framer.total_input_samples,
+        "total_frames_emitted": framer.total_frames_emitted,
+        "pending": [float(x) for x in framer.pending_array()],
+    }
+
+
+def deserialize_framer_state(payload: dict[str, object]) -> StreamingFramer:
+    """Rebuild a framer from :func:`serialize_framer_state` output."""
+    version = payload.get("schema_version")
+    if version != FRAMER_STATE_VERSION:
+        raise PipelineError(
+            f"incompatible schema_version={version!r}; expected {FRAMER_STATE_VERSION!r}"
+        )
+    config = FrameConfig(
+        frame_length=int(payload["frame_length"]),  # type: ignore[arg-type]
+        hop_length=int(payload["hop_length"]),  # type: ignore[arg-type]
+        pad_mode=str(payload["pad_mode"]),
+        center=bool(payload["center"]),
+    )
+    framer = StreamingFramer(config)
+    framer.restore(
+        pending=np.asarray(payload["pending"], dtype=np.float32),  # type: ignore[arg-type]
+        total_input_samples=int(payload["total_input_samples"]),  # type: ignore[arg-type]
+        total_frames_emitted=int(payload["total_frames_emitted"]),  # type: ignore[arg-type]
+    )
+    return framer
+
+
+__all__ = [
+    "FRAMER_STATE_VERSION",
+    "StreamingFramer",
+    "deserialize_framer_state",
+    "serialize_framer_state",
+]
