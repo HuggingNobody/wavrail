@@ -35,6 +35,9 @@ class TrainingConfig:
     seed: int = 0
     lr_decay_factor: float = 1.0
     lr_decay_every: int = 0
+    lr_warmup_epochs: int = 0
+    early_stop_patience: int = 0
+    early_stop_min_delta: float = 0.0
 
     def __post_init__(self) -> None:
         if self.n_epochs < 0:
@@ -51,6 +54,12 @@ class TrainingConfig:
             raise ModelError("lr_decay_factor must be > 0")
         if self.lr_decay_every < 0:
             raise ModelError("lr_decay_every must be >= 0")
+        if self.lr_warmup_epochs < 0:
+            raise ModelError("lr_warmup_epochs must be >= 0")
+        if self.early_stop_patience < 0:
+            raise ModelError("early_stop_patience must be >= 0")
+        if self.early_stop_min_delta < 0:
+            raise ModelError("early_stop_min_delta must be >= 0")
 
 
 @dataclass
@@ -112,14 +121,22 @@ def _require_torch():
 
 
 def _lr_for_epoch(config: TrainingConfig, epoch: int) -> float:
-    """Step-decay schedule: ``lr * factor ** (epoch // every)``.
+    """Linear warmup followed by step decay.
 
-    ``lr_decay_every <= 0`` disables the schedule and keeps the
-    configured learning rate for every epoch.
+    During the first ``lr_warmup_epochs`` epochs the rate ramps
+    linearly from ``lr / warmup`` up to ``lr``. Afterwards the
+    step-decay schedule ``lr * factor ** (epochs_after_warmup //
+    every)`` applies, counting from the end of warmup.
+    ``lr_warmup_epochs = 0`` disables warmup and
+    ``lr_decay_every <= 0`` disables decay.
     """
-    if config.lr_decay_every <= 0:
-        return config.learning_rate
-    return config.learning_rate * config.lr_decay_factor ** (epoch // config.lr_decay_every)
+    warmup = config.lr_warmup_epochs
+    if warmup > 0 and epoch < warmup:
+        return config.learning_rate * (epoch + 1) / warmup
+    lr = config.learning_rate
+    if config.lr_decay_every > 0:
+        lr = lr * config.lr_decay_factor ** ((epoch - warmup) // config.lr_decay_every)
+    return lr
 
 
 def train_synthetic(

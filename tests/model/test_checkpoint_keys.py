@@ -38,6 +38,9 @@ def test_saved_checkpoint_keys_are_stable(tmp_path) -> None:
         "seed",
         "lr_decay_factor",
         "lr_decay_every",
+        "lr_warmup_epochs",
+        "early_stop_patience",
+        "early_stop_min_delta",
     }
     assert set(payload["model_state"]) == {
         "gru",
