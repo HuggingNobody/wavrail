@@ -138,3 +138,21 @@ for chunk in chunks:  # float32 mono audio, e.g. 100 ms at a time
 hypothesis = pipe.finalize()  # flush the tail after the last chunk
 print(hypothesis.text, pipe.latency_report())
 ```
+
+### Push-based framing
+
+```python
+from wavrail.types import FrameConfig
+
+framer = stream.StreamingFramer(
+    FrameConfig(frame_length=400, hop_length=160, center=False)
+)
+frames = framer.push(chunk)  # (num_new_frames, 400) float32
+tail = framer.flush(pad_tail=True)  # zero-padded final frame
+
+spectrogram = stream.StreamingSpectrogram(framer.config, fft_size=512)
+rows = spectrogram.push(chunk)  # power-spectrum rows per chunk
+
+state = stream.serialize_framer_state(framer)  # pause / resume
+stream.deserialize_framer_state(state)
+```
