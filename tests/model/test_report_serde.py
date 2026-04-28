@@ -42,4 +42,5 @@ def test_to_dict_keys_are_stable() -> None:
         "n_dev_examples",
         "dev_cer",
         "loss_decreased",
+        "stopped_early",
     }

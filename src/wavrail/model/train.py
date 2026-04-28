@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from wavrail.errors import ModelError
+from wavrail.model.earlystop import EarlyStopper
 from wavrail.vocab import Vocab
 
 
@@ -74,6 +75,7 @@ class TrainingReport:
     n_train_examples: int = 0
     n_dev_examples: int = 0
     dev_cer: float | None = None
+    stopped_early: bool = False
 
     def loss_decreased(self) -> bool:
         """Return True if the final loss is strictly less than the initial."""
@@ -91,6 +93,7 @@ class TrainingReport:
             "n_dev_examples": int(self.n_dev_examples),
             "dev_cer": None if self.dev_cer is None else float(self.dev_cer),
             "loss_decreased": self.loss_decreased(),
+            "stopped_early": bool(self.stopped_early),
         }
 
     @classmethod
@@ -106,6 +109,7 @@ class TrainingReport:
             n_train_examples=int(payload.get("n_train_examples", 0)),
             n_dev_examples=int(payload.get("n_dev_examples", 0)),
             dev_cer=None if cer is None else float(cer),
+            stopped_early=bool(payload.get("stopped_early", False)),
         )
 
 
@@ -185,6 +189,11 @@ def train_synthetic(
     start_epoch = 0
     if resume_from is not None:
         start_epoch = _apply_resume(model, optimiser, config, report, resume_from)
+    stopper = EarlyStopper(
+        patience=config.early_stop_patience,
+        min_delta=config.early_stop_min_delta,
+    )
+    epochs_completed = start_epoch
     for epoch in range(start_epoch, config.n_epochs):
         lr = _lr_for_epoch(config, epoch)
         for group in optimiser.param_groups:
@@ -211,13 +220,17 @@ def train_synthetic(
         if epoch == 0:
             report.initial_loss = epoch_loss
         report.epoch_losses.append(epoch_loss)
+        epochs_completed = epoch + 1
+        if stopper.step(epoch_loss):
+            report.stopped_early = True
+            break
     report.final_loss = report.epoch_losses[-1] if report.epoch_losses else 0.0
     if save_to is not None:
         from wavrail.model.checkpoint import Checkpoint, save_checkpoint
 
         save_checkpoint(
             Checkpoint(
-                epoch=config.n_epochs,
+                epoch=epochs_completed,
                 config=asdict(config),
                 model_state=model.state_dict(),
                 epoch_losses=list(report.epoch_losses),
