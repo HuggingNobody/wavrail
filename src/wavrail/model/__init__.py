@@ -25,6 +25,7 @@ from wavrail.model.checkpoint import (
     load_checkpoint,
     save_checkpoint,
 )
+from wavrail.model.earlystop import EarlyStopper
 from wavrail.model.synthetic import (
     SyntheticExample,
     build_synthetic_dataset,
@@ -38,6 +39,7 @@ from wavrail.model.train import (
 __all__ = [
     "CHECKPOINT_SCHEMA_VERSION",
     "Checkpoint",
+    "EarlyStopper",
     "SyntheticExample",
     "TrainingConfig",
     "TrainingReport",
