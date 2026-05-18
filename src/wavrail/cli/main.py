@@ -112,6 +112,21 @@ def _add_train(sub: argparse._SubParsersAction) -> None:
     parser.add_argument("--hidden-dim", type=int, default=32)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument(
+        "--warmup-epochs", type=int, default=0, help="linear lr warmup epochs (0 disables)"
+    )
+    parser.add_argument(
+        "--early-stop-patience",
+        type=int,
+        default=0,
+        help="stop after N non-improving epochs (0 disables)",
+    )
+    parser.add_argument(
+        "--early-stop-min-delta",
+        type=float,
+        default=0.0,
+        help="minimum loss drop that counts as an improvement",
+    )
+    parser.add_argument(
         "--save-checkpoint",
         default=None,
         help="write a resumable checkpoint to this path after training",
@@ -375,6 +390,9 @@ def _run_train(args: argparse.Namespace) -> None:
         n_epochs=args.epochs,
         hidden_dim=args.hidden_dim,
         learning_rate=args.learning_rate,
+        lr_warmup_epochs=args.warmup_epochs,
+        early_stop_patience=args.early_stop_patience,
+        early_stop_min_delta=args.early_stop_min_delta,
     )
 
     def factory(seed: int) -> tuple[list, list]:
