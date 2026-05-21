@@ -124,6 +124,30 @@ ops = metrics.edit_alignment("hello world".split(), "hello wurld".split())
 print(wer, ops.substitutions, ops.insertions, ops.deletions)
 ```
 
+## Training the acoustic model
+
+Requires the optional torch extra (`pip install wavrail[torch]`;
+CPU-only wheels are enough). The dataset is synthetic formant-stack
+audio, **not real speech**: the dev CER is a pipeline-health signal,
+not an accuracy claim.
+
+```python
+from wavrail.model import TrainingConfig, build_synthetic_dataset, train_synthetic
+
+config = TrainingConfig(
+    n_epochs=8,
+    hidden_dim=32,
+    learning_rate=1e-3,
+    lr_warmup_epochs=2,        # linear ramp before step decay
+    early_stop_patience=2,     # stop after 2 non-improving epochs
+    early_stop_min_delta=0.01, # improvement must beat this margin
+)
+report = train_synthetic(config, factory, vocab=vocab, save_to="ckpt.pt")
+print(report.epoch_losses, report.stopped_early, report.dev_cer)
+
+noisy = build_synthetic_dataset(vocab, n_examples=8, seed=1, noise_snr_db=10.0)
+```
+
 ## Streaming
 
 ```python
