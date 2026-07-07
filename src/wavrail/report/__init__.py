@@ -16,6 +16,7 @@ The export helpers add JSONL interchange (``read_jsonl`` /
 from wavrail.report.export import (
     alignment_record,
     alignments_to_markdown,
+    corpus_to_markdown,
     hypotheses_to_markdown,
     hypothesis_record,
     markdown_table,
@@ -46,6 +47,7 @@ __all__ = [
     "alignment_record",
     "alignment_summary_to_dict",
     "alignments_to_markdown",
+    "corpus_to_markdown",
     "hypotheses_to_markdown",
     "hypothesis_from_dict",
     "hypothesis_record",

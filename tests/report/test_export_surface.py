@@ -12,6 +12,7 @@ EXPECTED = {
     "alignment_record",
     "alignment_summary_to_dict",
     "alignments_to_markdown",
+    "corpus_to_markdown",
     "hypotheses_to_markdown",
     "hypothesis_from_dict",
     "hypothesis_record",

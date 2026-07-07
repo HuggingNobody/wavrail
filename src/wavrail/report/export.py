@@ -18,6 +18,7 @@ from typing import Any
 from wavrail.align import Alignment
 from wavrail.ctc._common import Hypothesis
 from wavrail.errors import SchemaError
+from wavrail.metrics import CorpusScore
 from wavrail.report.schema import align_to_dict, hypothesis_to_dict
 
 
@@ -194,9 +195,48 @@ def alignments_to_markdown(
     return f"# {title}\n\n{table}"
 
 
+def corpus_to_markdown(corpus: CorpusScore, *, title: str = "corpus") -> str:
+    """Render a corpus score as a Markdown report.
+
+    The header block carries the aggregate and per-utterance rate
+    distribution; the table lists every utterance with its edit
+    counts, rate, and optional duration/noise metadata. An empty
+    corpus is rejected because :meth:`CorpusScore.rate_summary` is
+    undefined without rateable utterances.
+    """
+    summary = corpus.rate_summary()
+    header = "\n".join(
+        [
+            f"# {title}",
+            "",
+            f"- unit: {corpus.unit}",
+            f"- utterances: {summary.count}",
+            f"- aggregate error rate: {corpus.error_rate:.6f}",
+            f"- mean per-utterance rate: {summary.mean_rate:.6f}",
+            f"- median per-utterance rate: {summary.median_rate:.6f}",
+            f"- min/max rate: {summary.min_rate:.6f} / {summary.max_rate:.6f}",
+            "",
+        ]
+    )
+    rows = [
+        [
+            u.name,
+            u.ops.errors,
+            u.ops.length,
+            f"{(u.ops.errors / u.ops.length) if u.ops.length else 0.0:.6f}",
+            "" if u.duration_seconds is None else f"{u.duration_seconds:.3f}",
+            "" if u.noise_level_db is None else f"{u.noise_level_db:.1f}",
+        ]
+        for u in corpus.utterances
+    ]
+    table = markdown_table(["name", "errors", "length", "rate", "duration_s", "noise_db"], rows)
+    return header + "\n" + table
+
+
 __all__ = [
     "alignment_record",
     "alignments_to_markdown",
+    "corpus_to_markdown",
     "hypotheses_to_markdown",
     "hypothesis_record",
     "markdown_table",
