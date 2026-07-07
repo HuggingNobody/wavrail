@@ -6,7 +6,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from wavrail.align import Alignment
+from wavrail.align import Alignment, summarize_alignment
 from wavrail.ctc._common import Hypothesis
 from wavrail.errors import SchemaError
 from wavrail.metrics import CorpusScore
@@ -141,10 +141,22 @@ def _check_version(payload: dict[str, Any]) -> None:
         raise SchemaError(f"incompatible schema_version={version!r}; expected {SCHEMA_VERSION!r}")
 
 
+def alignment_summary_to_dict(alignment: Alignment, frame_shift_s: float) -> dict[str, Any]:
+    """Versioned seconds-domain summary payload for an alignment.
+
+    Wraps :func:`wavrail.align.summarize_alignment` in the schema
+    envelope and records the frame shift used for the conversion, so
+    readers can reproduce every seconds-based number.
+    """
+    summary = summarize_alignment(alignment, frame_shift_s)
+    return _with_schema({"kind": "alignment_summary", "frame_shift_s": frame_shift_s, **summary})
+
+
 __all__ = [
     "SCHEMA_VERSION",
     "align_from_dict",
     "align_to_dict",
+    "alignment_summary_to_dict",
     "hypothesis_from_dict",
     "hypothesis_to_dict",
     "score_report_from_json",
