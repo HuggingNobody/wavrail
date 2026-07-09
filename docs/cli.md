@@ -36,19 +36,24 @@ wavrail features sample.wav --frame-length-ms 25 --hop-length-ms 10
 
 ## decode
 
-Run CTC greedy or prefix-beam decoding on posterior text or a
-checkpoint-emitted posterior file.
+Run CTC greedy (`--beam 1`, default) or prefix-beam decoding on a
+WAV file. Without an acoustic model the CLI derives an energy-based
+surrogate posterior, so the output demonstrates the decoding path
+rather than real recognition. `--json` emits the schema-versioned
+hypothesis record.
 
 ```bash
-wavrail decode --beam 4 sample.posteriors.json
+wavrail decode sample.wav --vocab "<blank>,a,b,c" --beam 4 --json
 ```
 
 ## align
 
-Run forced alignment between a transcript and a posterior stream.
+Force-align a transcript to a WAV file (both positional), using the
+same energy surrogate posterior as `decode`. `--json` emits the
+schema-versioned alignment record.
 
 ```bash
-wavrail align --transcript "hello" sample.posteriors.json
+wavrail align sample.wav "abc" --vocab "<blank>,a,b,c" --json
 ```
 
 ## score
