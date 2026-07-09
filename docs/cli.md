@@ -58,10 +58,13 @@ wavrail align sample.wav "abc" --vocab "<blank>,a,b,c" --json
 
 ## score
 
-Compare a hypothesis file or text against a reference.
+Compare a hypothesis against a reference (both positional).
+`--unit` picks character- or word-level scoring, `--format` renders
+text, schema JSON, JSONL, or Markdown, and `--output` writes to a
+file instead of stdout.
 
 ```bash
-wavrail score --reference "hello" --hypothesis "hello world"
+wavrail score "hello world" "hello wurld" --unit word --format md
 ```
 
 ## train
