@@ -25,10 +25,13 @@ wavrail synth noise noise.wav --seed 7 --encoding float32
 
 ## features
 
-Extract log-mel features to stdout as a `.npy` file or a JSON array.
+Extract log-mel features from a WAV file. `--output` writes the
+feature matrix as `.npy`; frame geometry is configured in
+milliseconds.
 
 ```bash
-wavrail features sample.wav --num-mels 80 --format npy > feat.npy
+wavrail features sample.wav --n-mels 80 --output feat.npy
+wavrail features sample.wav --frame-length-ms 25 --hop-length-ms 10
 ```
 
 ## decode
