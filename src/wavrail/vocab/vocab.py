@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import Any, cast
 
 from wavrail.errors import VocabularyError
 
@@ -92,10 +93,10 @@ class Vocab:
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> Vocab:
-        labels = payload.get("labels") or []
+        labels = cast(list, payload.get("labels") or [])
         return cls(
             labels=tuple(str(label) for label in labels),
-            blank_index=int(payload.get("blank_index", 0)),
+            blank_index=int(cast(Any, payload.get("blank_index", 0))),
             name=str(payload.get("name", "vocab")),
         )
 
