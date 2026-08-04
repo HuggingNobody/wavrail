@@ -15,6 +15,7 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import Any, cast
 
 import numpy as np
 
@@ -183,17 +184,17 @@ def serialize_state(state: StreamingDecoderState) -> dict[str, object]:
 def deserialize_state(payload: dict[str, object]) -> StreamingDecoderState:
     """Restore a :class:`StreamingDecoderState` from ``payload``."""
     return StreamingDecoderState(
-        vocab_size=int(payload["vocab_size"]),
-        blank_index=int(payload["blank_index"]),
-        emission_delay=int(payload["emission_delay"]),
-        max_symbols_per_step=int(payload["max_symbols_per_step"]),
-        tokens=list(payload.get("tokens", [])),  # type: ignore[arg-type]
-        frame_indices=list(payload.get("frame_indices", [])),  # type: ignore[arg-type]
-        log_probabilities=list(payload.get("log_probabilities", [])),  # type: ignore[arg-type]
-        candidate_symbol=int(payload.get("candidate_symbol", -1)),
-        candidate_count=int(payload.get("candidate_count", 0)),
-        candidate_frame=int(payload.get("candidate_frame", 0)),
-        frames_consumed=int(payload.get("frames_consumed", 0)),
+        vocab_size=int(cast(Any, payload["vocab_size"])),
+        blank_index=int(cast(Any, payload["blank_index"])),
+        emission_delay=int(cast(Any, payload["emission_delay"])),
+        max_symbols_per_step=int(cast(Any, payload["max_symbols_per_step"])),
+        tokens=list(cast(Any, payload.get("tokens", []))),
+        frame_indices=list(cast(Any, payload.get("frame_indices", []))),
+        log_probabilities=list(cast(Any, payload.get("log_probabilities", []))),
+        candidate_symbol=int(cast(Any, payload.get("candidate_symbol", -1))),
+        candidate_count=int(cast(Any, payload.get("candidate_count", 0))),
+        candidate_frame=int(cast(Any, payload.get("candidate_frame", 0))),
+        frames_consumed=int(cast(Any, payload.get("frames_consumed", 0))),
     )
 
 
