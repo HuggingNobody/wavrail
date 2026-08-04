@@ -15,6 +15,8 @@ import numpy as np
 
 from wavrail.errors import PipelineError as _BufferError
 
+_DEFAULT_DTYPE = np.dtype(np.float32)
+
 
 class RingBuffer:
     """Fixed-capacity NumPy-backed ring buffer."""
@@ -23,7 +25,7 @@ class RingBuffer:
         self,
         capacity: int,
         channels: int = 1,
-        dtype: np.dtype = np.float32,
+        dtype: np.dtype = _DEFAULT_DTYPE,
         overflow: str = "overwrite",
     ) -> None:
         if capacity < 1:

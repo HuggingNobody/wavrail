@@ -14,6 +14,8 @@ incrementally without changing frame values mid-stream.
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import numpy as np
 
 from wavrail.errors import PipelineError
@@ -175,16 +177,16 @@ def deserialize_framer_state(payload: dict[str, object]) -> StreamingFramer:
             f"incompatible schema_version={version!r}; expected {FRAMER_STATE_VERSION!r}"
         )
     config = FrameConfig(
-        frame_length=int(payload["frame_length"]),  # type: ignore[arg-type]
-        hop_length=int(payload["hop_length"]),  # type: ignore[arg-type]
+        frame_length=int(cast(Any, payload["frame_length"])),
+        hop_length=int(cast(Any, payload["hop_length"])),
         pad_mode=str(payload["pad_mode"]),
         center=bool(payload["center"]),
     )
     framer = StreamingFramer(config)
     framer.restore(
-        pending=np.asarray(payload["pending"], dtype=np.float32),  # type: ignore[arg-type]
-        total_input_samples=int(payload["total_input_samples"]),  # type: ignore[arg-type]
-        total_frames_emitted=int(payload["total_frames_emitted"]),  # type: ignore[arg-type]
+        pending=np.asarray(cast(list, payload["pending"]), dtype=np.float32),
+        total_input_samples=int(cast(Any, payload["total_input_samples"])),
+        total_frames_emitted=int(cast(Any, payload["total_frames_emitted"])),
     )
     return framer
 
