@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 
@@ -101,14 +102,14 @@ class TrainingReport:
         """Rebuild a report snapshot; ``loss_decreased`` is recomputed."""
         cer = payload.get("dev_cer")
         return cls(
-            epoch_losses=[float(v) for v in payload.get("epoch_losses", [])],
-            learning_rates=[float(v) for v in payload.get("learning_rates", [])],
-            resumed_from_epoch=int(payload.get("resumed_from_epoch", 0)),
-            final_loss=float(payload.get("final_loss", 0.0)),
-            initial_loss=float(payload.get("initial_loss", 0.0)),
-            n_train_examples=int(payload.get("n_train_examples", 0)),
-            n_dev_examples=int(payload.get("n_dev_examples", 0)),
-            dev_cer=None if cer is None else float(cer),
+            epoch_losses=[float(v) for v in cast(list, payload.get("epoch_losses", []))],
+            learning_rates=[float(v) for v in cast(list, payload.get("learning_rates", []))],
+            resumed_from_epoch=int(cast(Any, payload.get("resumed_from_epoch", 0))),
+            final_loss=float(cast(Any, payload.get("final_loss", 0.0))),
+            initial_loss=float(cast(Any, payload.get("initial_loss", 0.0))),
+            n_train_examples=int(cast(Any, payload.get("n_train_examples", 0))),
+            n_dev_examples=int(cast(Any, payload.get("n_dev_examples", 0))),
+            dev_cer=None if cer is None else float(cast(Any, cer)),
             stopped_early=bool(payload.get("stopped_early", False)),
         )
 
@@ -277,7 +278,7 @@ def _check_resume_compatible(saved: dict[str, object], config: TrainingConfig) -
             )
 
 
-def _ctc_loss(log_probs: object, targets: object, target_lengths: object) -> object:
+def _ctc_loss(log_probs: Any, targets: Any, target_lengths: Any) -> Any:
     torch = _require_torch()
     batch_size, time_steps, _vocab_size = log_probs.shape  # type: ignore[attr-defined]
     input_lengths = torch.full((batch_size,), time_steps, dtype=torch.long)
@@ -292,7 +293,7 @@ def _ctc_loss(log_probs: object, targets: object, target_lengths: object) -> obj
     )
 
 
-def _evaluate_dev(model: object, dev_examples: list, vocab: Vocab | None) -> float:
+def _evaluate_dev(model: Any, dev_examples: list, vocab: Vocab | None) -> float:
     """Held-out CER on the synthetic dev split.
 
     Uses the public character-level edit alignment so the number is
