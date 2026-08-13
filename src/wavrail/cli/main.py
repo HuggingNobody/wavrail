@@ -34,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_inspect(sub)
     _add_synth(sub)
     _add_features(sub)
+    _add_vad(sub)
     _add_decode(sub)
     _add_align(sub)
     _add_score(sub)
@@ -54,6 +55,19 @@ def _add_features(sub: argparse._SubParsersAction) -> None:
     parser.add_argument("--frame-length-ms", type=float, default=25.0, help="frame length in ms")
     parser.add_argument("--hop-length-ms", type=float, default=10.0, help="hop length in ms")
     parser.add_argument("--output", help="optional path to write features as .npy")
+
+
+def _add_vad(sub: argparse._SubParsersAction) -> None:
+    parser = sub.add_parser("vad", help="Report voiced-frame regions for a WAV file.")
+    parser.add_argument("path", help="path to a WAV file")
+    parser.add_argument(
+        "--threshold-db", type=float, default=-40.0, help="voiced threshold in dBFS"
+    )
+    parser.add_argument(
+        "--hangover", type=int, default=2, help="extra voiced frames kept after a drop"
+    )
+    parser.add_argument("--frame-length-ms", type=float, default=25.0, help="frame length in ms")
+    parser.add_argument("--hop-length-ms", type=float, default=10.0, help="hop length in ms")
 
 
 def _add_decode(sub: argparse._SubParsersAction) -> None:
@@ -278,6 +292,47 @@ def _run_features(args: argparse.Namespace) -> None:
         np.save(args.output, features)
 
 
+def _voiced_regions(flags: np.ndarray) -> list[list[int]]:
+    """Merge voiced frame flags into half-open ``[start, end)`` ranges."""
+    regions: list[list[int]] = []
+    start: int | None = None
+    for index, flag in enumerate(flags):
+        if flag and start is None:
+            start = index
+        elif not flag and start is not None:
+            regions.append([start, index])
+            start = None
+    if start is not None:
+        regions.append([start, len(flags)])
+    return regions
+
+
+def _run_vad(args: argparse.Namespace) -> None:
+    from wavrail.audio import downmix_to_mono, read_wav
+    from wavrail.features import detect_voice_activity, frame_signal
+    from wavrail.types import FrameConfig
+
+    samples, meta = read_wav(args.path)
+    if samples.ndim == 2:
+        samples = downmix_to_mono(samples)
+    config = FrameConfig(
+        frame_length=max(1, round(meta.sample_rate * args.frame_length_ms / 1000.0)),
+        hop_length=max(1, round(meta.sample_rate * args.hop_length_ms / 1000.0)),
+        center=False,
+    )
+    frames = frame_signal(samples, config)
+    flags = detect_voice_activity(
+        frames, threshold_db=args.threshold_db, hangover_frames=args.hangover
+    )
+    payload = {
+        "num_frames": int(flags.size),
+        "voiced_frames": int(flags.sum()),
+        "voiced_ratio": float(flags.mean()) if flags.size else 0.0,
+        "regions": _voiced_regions(flags),
+    }
+    print(json.dumps(payload))
+
+
 def _run_decode(args: argparse.Namespace) -> None:
     from wavrail.audio import read_wav
     from wavrail.ctc import PrefixBeamSearch, greedy_decode
@@ -448,6 +503,7 @@ _DISPATCH = {
     "inspect": _run_inspect,
     "synth": _run_synth,
     "features": _run_features,
+    "vad": _run_vad,
     "decode": _run_decode,
     "align": _run_align,
     "score": _run_score,
