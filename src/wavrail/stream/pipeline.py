@@ -185,27 +185,48 @@ class StreamingPipeline:
             tokens_emitted=len(latencies),
         )
 
+    def _require_state(self) -> StreamingPipelineState:
+        state = self.state
+        if state is None:
+            raise PipelineError("pipeline state is not initialised")
+        return state
+
+    def _require_decoder(self) -> StreamingDecoder:
+        decoder = self.decoder
+        if decoder is None:
+            raise PipelineError("pipeline decoder is not initialised")
+        return decoder
+
+    def _require_extractor(self) -> Callable[[np.ndarray], np.ndarray]:
+        extractor = self.feature_extractor
+        if extractor is None:
+            raise PipelineError("pipeline feature extractor is not initialised")
+        return extractor
+
     def feed_samples(self, samples: np.ndarray) -> list[int]:
         """Push a chunk of mono audio through the pipeline."""
         if self.is_cancelled:
             raise PipelineError("pipeline was cancelled; call reset() to restart")
         if samples.ndim != 1:
             raise PipelineError("samples must be 1-D (mono)")
+        state = self._require_state()
+        decoder = self._require_decoder()
+        extract = self._require_extractor()
         self.buffer.extend(samples.reshape(-1, 1))
         # accounting covers every ingested chunk, including feeds that
         # only accumulate into the buffer below the frame length
-        self.state.total_samples_consumed += int(samples.shape[0])
+        state.total_samples_consumed += int(samples.shape[0])
         snapshot = self.buffer.snapshot()
         if snapshot.shape[0] < self.frame_length_samples:
             self._sync_state()
             return []
         frames = frame_signal(snapshot, self.frame_config)
-        features = self.feature_extractor(frames)
+        features = extract(frames)
         # Frames are decoded one at a time so emission latencies are
         # recorded against the frame that actually emitted the token.
         emissions: list[int] = []
         for index in range(features.shape[0]):
-            step = self.decoder.feed(self.state.decoder_state, features[index : index + 1])
+            step = decoder.feed(state.decoder_state, features[index : index + 1])
             self._record_emission_latencies(step)
             emissions.extend(step)
         consumed = min(self.hop_length_samples * frames.shape[0], snapshot.shape[0])
@@ -246,19 +267,22 @@ class StreamingPipeline:
 
     def finalize(self) -> Hypothesis:
         """Flush the pipeline and return the final hypothesis."""
+        state = self._require_state()
+        decoder = self._require_decoder()
+        extract = self._require_extractor()
         snapshot = self.buffer.snapshot()
         if snapshot.shape[0] >= self.frame_length_samples:
             frames = frame_signal(snapshot, self.frame_config)
-            features = self.feature_extractor(frames)
+            features = extract(frames)
             for index in range(features.shape[0]):
-                step = self.decoder.feed(self.state.decoder_state, features[index : index + 1])
+                step = decoder.feed(state.decoder_state, features[index : index + 1])
                 self._record_emission_latencies(step)
-        tokens_before = len(self.state.decoder_state.tokens)
-        self.decoder.finalize(self.state.decoder_state)
+        tokens_before = len(state.decoder_state.tokens)
+        decoder.finalize(state.decoder_state)
         self._record_flushed_latency(tokens_before)
         self.buffer.reset()
         self._sync_state()
-        return self.decoder.to_hypothesis(self.state.decoder_state)
+        return decoder.to_hypothesis(state.decoder_state)
 
     def load_state(self, state: StreamingPipelineState) -> None:
         """Adopt ``state`` so a paused stream resumes where it stopped.
@@ -289,7 +313,7 @@ class StreamingPipeline:
         self.state = StreamingPipelineState(
             buffer_samples=[],
             total_samples_consumed=0,
-            decoder_state=self.decoder.initial_state(),
+            decoder_state=self._require_decoder().initial_state(),
             feature_lookahead_samples=self.feature_lookahead_samples,
             sample_rate=self.sample_rate,
             frame_length_samples=self.frame_length_samples,
