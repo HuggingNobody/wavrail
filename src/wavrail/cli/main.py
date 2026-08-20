@@ -54,6 +54,15 @@ def _add_features(sub: argparse._SubParsersAction) -> None:
     parser.add_argument("--n-mels", type=int, default=40, help="number of mel filters (default 40)")
     parser.add_argument("--frame-length-ms", type=float, default=25.0, help="frame length in ms")
     parser.add_argument("--hop-length-ms", type=float, default=10.0, help="hop length in ms")
+    parser.add_argument(
+        "--kind",
+        choices=["logmel", "mfcc"],
+        default="logmel",
+        help="feature kind to extract (default logmel)",
+    )
+    parser.add_argument(
+        "--num-coeffs", type=int, default=13, help="MFCC coefficients (--kind mfcc)"
+    )
     parser.add_argument("--output", help="optional path to write features as .npy")
 
 
@@ -280,14 +289,18 @@ def _run_features(args: argparse.Namespace) -> None:
     fbanks = mel_filterbank(mel_config)
     features = spectrum @ fbanks.T
     features = np.log(np.maximum(features, 1e-10))
-    print(
-        json.dumps(
-            {
-                "shape": list(features.shape),
-                "n_mels": args.n_mels,
-            }
-        )
-    )
+    payload: dict[str, object] = {
+        "kind": args.kind,
+        "shape": list(features.shape),
+        "n_mels": args.n_mels,
+    }
+    if args.kind == "mfcc":
+        from wavrail.features.mfcc import mfcc_from_logmel
+
+        features = mfcc_from_logmel(features, num_coeffs=args.num_coeffs)
+        payload["shape"] = list(features.shape)
+        payload["num_coeffs"] = args.num_coeffs
+    print(json.dumps(payload))
     if args.output:
         np.save(args.output, features)
 
