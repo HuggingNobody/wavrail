@@ -34,6 +34,15 @@ wavrail features sample.wav --n-mels 80 --output feat.npy
 wavrail features sample.wav --frame-length-ms 25 --hop-length-ms 10
 ```
 
+## vad
+
+Report energy-VAD voiced regions for a WAV file as JSON: frame
+counts, voiced ratio, and half-open frame-index regions.
+
+```bash
+wavrail vad sample.wav --threshold-db -40 --hangover 2
+```
+
 ## decode
 
 Run CTC greedy (`--beam 1`, default) or prefix-beam decoding on a
