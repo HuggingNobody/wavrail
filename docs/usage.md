@@ -15,9 +15,7 @@ print(meta.sample_rate, meta.num_samples)
 ## Synthesizing fixtures
 
 ```python
-tone = audio.synthesize_sine(frequency_hz=440.0,
-                             duration_s=1.0,
-                             sample_rate=16000)
+tone = audio.synthesize_sine(frequency_hz=440.0, duration_s=1.0, sample_rate=16000)
 ```
 
 ## Editing audio
@@ -49,13 +47,13 @@ import wavrail.features as ft
 
 frames = ft.frame_signal(samples, frame_config)
 spectra = ft.power_spectrum(frames, fft_size=512, window=ft.hann_window(400))
-centroid = ft.spectral_centroid(spectra, 16000)   # Hz, one value per frame
+centroid = ft.spectral_centroid(spectra, 16000)  # Hz, one value per frame
 rolloff = ft.spectral_rolloff(spectra, 16000, percent=0.85)
-flatness = ft.spectral_flatness(spectra, 16000)   # ~1 noise-like, ~0 tonal
-flux = ft.spectral_flux(spectra)                  # onset strength per frame
+flatness = ft.spectral_flatness(spectra, 16000)  # ~1 noise-like, ~0 tonal
+flux = ft.spectral_flux(spectra)  # onset strength per frame
 
 flags = ft.detect_voice_activity(frames, threshold_db=-40.0, hangover_frames=2)
-pitch = ft.estimate_pitch_acf(frames[0], 16000)   # PitchEstimate(hz, confidence)
+pitch = ft.estimate_pitch_acf(frames[0], 16000)  # PitchEstimate(hz, confidence)
 ```
 
 ## MFCC and cepstral features
@@ -138,9 +136,9 @@ config = TrainingConfig(
     n_epochs=8,
     hidden_dim=32,
     learning_rate=1e-3,
-    lr_warmup_epochs=2,        # linear ramp before step decay
-    early_stop_patience=2,     # stop after 2 non-improving epochs
-    early_stop_min_delta=0.01, # improvement must beat this margin
+    lr_warmup_epochs=2,  # linear ramp before step decay
+    early_stop_patience=2,  # stop after 2 non-improving epochs
+    early_stop_min_delta=0.01,  # improvement must beat this margin
 )
 report = train_synthetic(config, factory, vocab=vocab, save_to="ckpt.pt")
 print(report.epoch_losses, report.stopped_early, report.dev_cer)
