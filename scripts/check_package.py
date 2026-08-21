@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Smoke test that the built wheel installs and imports cleanly.
 
-This script is invoked by ``make release`` and by the pre-commit hook's
-build target. It locates the most recently built wheel inside ``dist/``
+This script is invoked by ``make release``. It locates the most
+recently built wheel inside ``dist/``
 and verifies that it can be installed into an isolated venv, that the
 ``wavrail`` package imports, and that the CLI entry point resolves.
 """
