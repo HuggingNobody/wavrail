@@ -45,3 +45,12 @@ def test_rejects_unknown_pad_mode() -> None:
     config = FrameConfig(frame_length=8, hop_length=4, center=True, pad_mode="bogus")
     with pytest.raises(FeatureError, match="pad_mode"):
         frame_signal(np.ones(16, dtype=np.float32), config)
+
+
+def test_short_signal_without_center_returns_empty_frames() -> None:
+    config = FrameConfig(frame_length=8, hop_length=4, center=False)
+    frames = frame_signal(np.ones(5, dtype=np.float32), config)
+
+    assert frames.shape == (0, 8)
+    assert frames.dtype == np.float32
+    assert frames.shape[0] == num_frames(5, config)

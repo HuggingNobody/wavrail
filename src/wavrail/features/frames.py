@@ -29,7 +29,9 @@ def frame_signal(samples: AudioArray, config: FrameConfig) -> FeatureArray:
     if config.center:
         pad = frame_length // 2
         arr = _pad(arr, pad, config.pad_mode)
-    num_frames = max(1, (arr.size - frame_length) // hop_length + 1)
+    elif arr.size < frame_length:
+        return np.empty((0, frame_length), dtype=np.float32)
+    num_frames = (arr.size - frame_length) // hop_length + 1
     indices = np.arange(frame_length)[None, :] + hop_length * np.arange(num_frames)[:, None]
     return arr[indices].astype(np.float32)
 
